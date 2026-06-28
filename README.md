@@ -18,19 +18,19 @@ SQLite 和 FTS5 由 Go 依赖内置，无需单独安装 SQLite。
 Go 没有单独的 release profile，`go build` 默认会进行优化。开发时直接构建：
 
 ```bash
-go build -o magazines2db .
+go build -o magazine2db .
 ```
 
 发布时建议移除本机路径、符号表和调试信息，以减小二进制体积：
 
 ```bash
-go build -trimpath -ldflags="-s -w" -o magazines2db .
+go build -trimpath -ldflags="-s -w" -o magazine2db .
 ```
 
 需要完全静态的当前平台二进制时：
 
 ```bash
-CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazines2db .
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazine2db .
 ```
 
 开发阶段也可以不构建，直接使用 `go run .`。
@@ -38,7 +38,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazines2db .
 程序按以下顺序推断工作目录：
 
 1. 当前目录中存在 `cfg.json` 时，使用当前目录（开发模式）。
-2. 否则查找 `magazines2db` 可执行文件同目录的 `cfg.json`（发布模式）。
+2. 否则查找 `magazine2db` 可执行文件同目录的 `cfg.json`（发布模式）。
 
 确定工作目录后，程序读取同级 `.env` 中的 API Key。`cfg.json` 里的数据库相对路径也以该目录为基准，因此可以从任意目录启动发布后的程序。
 
@@ -46,7 +46,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazines2db .
 
 ```text
 runtime/
-├── magazines2db
+├── magazine2db
 ├── cfg.json
 ├── .env
 └── magazines.db
@@ -74,7 +74,7 @@ MAGAZINE_FALLBACK_API_KEY=...
 每天自动执行“同步 → 入库新期刊 → 生成待处理摘要”时，先构建二进制并创建日志目录：
 
 ```bash
-go build -o magazines2db .
+go build -o magazine2db .
 mkdir -p logs
 ```
 
@@ -91,7 +91,7 @@ PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Applications/calibre.app/Co
 20 6 * * * cd /path/to/magazine2db && ./scripts/daily.sh >> logs/daily.log 2>&1
 ```
 
-每天 6:20 运行。脚本带有互斥锁，重复触发会直接退出；已有期刊由 `ingest` 自动跳过，只为尚无摘要的文章调用模型。可以通过 `MAGAZINES2DB_BIN` 覆盖二进制路径，并继续使用同步脚本支持的 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量。
+每天 6:20 运行。脚本带有互斥锁，重复触发会直接退出；已有期刊由 `ingest` 自动跳过，只为尚无摘要的文章调用模型。可以通过 `magazine2db_BIN` 覆盖二进制路径，并继续使用同步脚本支持的 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量。
 
 ## 入库
 
