@@ -90,10 +90,6 @@ latest_paths_for_category() {
   for category in "${CATEGORIES[@]}"; do
     latest_paths_for_category "$category"
   done
-
-  if git cat-file -e "origin/$BRANCH:01_economist/fonts" 2>/dev/null; then
-    echo "01_economist/fonts"
-  fi
 } | sort -u > "$TMP_FILE"
 
 echo "keep these paths:"
