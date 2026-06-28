@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"magazine2db/internal/domain"
@@ -60,6 +61,53 @@ func TestInsertRetentionSearchAndRead(t *testing.T) {
 	}
 	if len(zhHits) != 1 || zhHits[0].ID != article.ID {
 		t.Fatalf("Chinese summary was not searchable: %+v", zhHits)
+	}
+}
+
+func TestListArticleSummariesPaginatesAndFallsBackToBody(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(filepath.Join(t.TempDir(), "magazines.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	longBody := strings.Repeat("界", 220)
+	issue := domain.Issue{
+		Publisher: "wired", IssueDate: "2026-06-02", SourcePath: "/fixture",
+		Articles: []domain.Article{
+			{StableID: "wired:2026-06-02:first", Slug: "first", Title: "First", SourceURL: "https://example.com/first", Body: "first body"},
+			{StableID: "wired:2026-06-02:second", Slug: "second", Title: "Second", SourceURL: "https://example.com/second", Body: longBody},
+			{StableID: "wired:2026-06-02:third", Slug: "third", Title: "Third", SourceURL: "https://example.com/third", Body: "third body"},
+		},
+	}
+	if err := db.InsertIssue(ctx, issue, 4); err != nil {
+		t.Fatal(err)
+	}
+	first, err := db.Read(ctx, issue.Articles[0].StableID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SaveSummary(ctx, first.ID, "已有中文摘要。", "primary"); err != nil {
+		t.Fatal(err)
+	}
+
+	items, total, err := db.ListArticleSummaries(ctx, 1, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 3 || len(items) != 2 {
+		t.Fatalf("total=%d items=%d, want 3 and 2", total, len(items))
+	}
+	if items[0].Summary != "已有中文摘要。" {
+		t.Fatalf("stored summary = %q", items[0].Summary)
+	}
+	if got := len([]rune(items[1].Summary)); got != 200 {
+		t.Fatalf("fallback body length = %d, want 200", got)
+	}
+	secondPage, _, err := db.ListArticleSummaries(ctx, 2, 2)
+	if err != nil || len(secondPage) != 1 {
+		t.Fatalf("second page = %+v, err=%v", secondPage, err)
 	}
 }
 

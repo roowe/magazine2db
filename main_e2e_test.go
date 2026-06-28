@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"magazine2db/internal/domain"
 )
 
 const e2eArticleID = "economist:2026-06-27:a-practical-quantum-network"
@@ -53,11 +55,49 @@ func TestCLIEndToEndWithRealSummaryAPI(t *testing.T) {
 	if len(numericID) != 2 {
 		t.Fatalf("numeric article ID missing from search output:\n%s", search)
 	}
+	jsonSearch := runE2ECommand(t, ctx, runtimeDir, binary, "search", "--json", "quantum network")
+	var searchResult struct {
+		Count   int                `json:"count"`
+		Results []domain.SearchHit `json:"results"`
+	}
+	if err := json.Unmarshal([]byte(jsonSearch), &searchResult); err != nil {
+		t.Fatalf("decode JSON search output: %v\n%s", err, jsonSearch)
+	}
+	if searchResult.Count != 1 || len(searchResult.Results) != 1 || searchResult.Results[0].StableID != e2eArticleID {
+		t.Fatalf("unexpected JSON search output: %+v", searchResult)
+	}
 
 	byStableID := runE2ECommand(t, ctx, runtimeDir, binary, "read", e2eArticleID)
 	assertContains(t, byStableID, "# A practical quantum network")
 	byNumericID := runE2ECommand(t, ctx, runtimeDir, binary, "read", numericID[1])
 	assertContains(t, byNumericID, "Stable ID: "+e2eArticleID)
+	jsonRead := runE2ECommand(t, ctx, runtimeDir, binary, "read", "--json", numericID[1])
+	var articleResult domain.StoredArticle
+	if err := json.Unmarshal([]byte(jsonRead), &articleResult); err != nil {
+		t.Fatalf("decode JSON read output: %v\n%s", err, jsonRead)
+	}
+	if articleResult.StableID != e2eArticleID || articleResult.Body == "" {
+		t.Fatalf("unexpected JSON read output: %+v", articleResult)
+	}
+	plainList := runE2ECommand(t, ctx, runtimeDir, binary, "list", "--page", "1", "--page-size", "1")
+	assertContains(t, plainList, "["+numericID[1]+"] A practical quantum network")
+	assertContains(t, plainList, "page 1 | page size 1 | total 1")
+	listOutput := runE2ECommand(t, ctx, runtimeDir, binary, "list", "--page", "1", "--page-size", "1", "--json")
+	var listResult struct {
+		Page     int                     `json:"page"`
+		PageSize int                     `json:"page_size"`
+		Total    int                     `json:"total"`
+		Items    []domain.ArticleSummary `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(listOutput), &listResult); err != nil {
+		t.Fatalf("decode list output: %v\n%s", err, listOutput)
+	}
+	if listResult.Page != 1 || listResult.PageSize != 1 || listResult.Total != 1 || len(listResult.Items) != 1 {
+		t.Fatalf("unexpected list pagination: %+v", listResult)
+	}
+	if listResult.Items[0].Title != "A practical quantum network" || listResult.Items[0].Summary == "" {
+		t.Fatalf("unexpected list item: %+v", listResult.Items[0])
+	}
 
 	// This is the only real model call in the test.
 	summarized := runE2ECommand(t, ctx, runtimeDir, binary, "summarize", "--limit", "1", "--concurrency", "1")

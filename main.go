@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -36,7 +37,7 @@ func run(ctx context.Context, args []string) error {
 		usage()
 		return nil
 	}
-	if args[0] != "ingest" && args[0] != "search" && args[0] != "read" && args[0] != "summarize" {
+	if args[0] != "ingest" && args[0] != "search" && args[0] != "read" && args[0] != "list" && args[0] != "summarize" {
 		usage()
 		return fmt.Errorf("unknown command %q", args[0])
 	}
@@ -51,6 +52,8 @@ func run(ctx context.Context, args []string) error {
 		return runSearch(ctx, cfg, args[1:])
 	case "read":
 		return runRead(ctx, cfg, args[1:])
+	case "list":
+		return runList(ctx, cfg, args[1:])
 	case "summarize":
 		return runSummarize(ctx, cfg, args[1:])
 	}
@@ -100,6 +103,7 @@ func runSearch(ctx context.Context, cfg config.Config, args []string) error {
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
 	publisher := flags.String("publisher", "", "filter by economist or wired")
 	limit := flags.Int("limit", 20, "maximum results")
+	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -119,6 +123,15 @@ func runSearch(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
+	if *jsonOutput {
+		if hits == nil {
+			hits = []domain.SearchHit{}
+		}
+		return writeJSON(struct {
+			Count   int                `json:"count"`
+			Results []domain.SearchHit `json:"results"`
+		}{Count: len(hits), Results: hits})
+	}
 	for _, hit := range hits {
 		fmt.Printf("[%d] %s\n%s | %s | %s\n%s\n\n",
 			hit.ID, hit.StableID, hit.Publisher, hit.IssueDate, hit.Title, hit.Preview)
@@ -130,6 +143,7 @@ func runSearch(ctx context.Context, cfg config.Config, args []string) error {
 func runRead(ctx context.Context, cfg config.Config, args []string) error {
 	flags := flag.NewFlagSet("read", flag.ContinueOnError)
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
+	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -145,8 +159,61 @@ func runRead(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
+	if *jsonOutput {
+		return writeJSON(article)
+	}
 	printArticle(article)
 	return nil
+}
+
+func runList(ctx context.Context, cfg config.Config, args []string) error {
+	flags := flag.NewFlagSet("list", flag.ContinueOnError)
+	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
+	page := flags.Int("page", 1, "page number, starting from 1")
+	pageSize := flags.Int("page-size", 20, "number of articles per page")
+	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return errors.New("usage: magazines2db list [flags]")
+	}
+	if *page < 1 || *pageSize < 1 {
+		return errors.New("page and page-size must be positive")
+	}
+	db, err := store.Open(*dbPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	items, total, err := db.ListArticleSummaries(ctx, *page, *pageSize)
+	if err != nil {
+		return err
+	}
+	if *jsonOutput {
+		return writeJSON(struct {
+			Page     int                     `json:"page"`
+			PageSize int                     `json:"page_size"`
+			Total    int                     `json:"total"`
+			Items    []domain.ArticleSummary `json:"items"`
+		}{Page: *page, PageSize: *pageSize, Total: total, Items: items})
+	}
+	for _, item := range items {
+		fmt.Printf("[%d] %s\n%s\n\n", item.ID, item.Title, removeBlankLines(item.Summary))
+	}
+	fmt.Printf("page %d | page size %d | total %d\n", *page, *pageSize, total)
+	return nil
+}
+
+func removeBlankLines(value string) string {
+	lines := strings.Split(value, "\n")
+	result := lines[:0]
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			result = append(result, line)
+		}
+	}
+	return strings.Join(result, "\n")
 }
 
 func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
@@ -270,6 +337,12 @@ func printArticle(article domain.StoredArticle) {
 	fmt.Printf("\n## Article\n\n%s\n", article.Body)
 }
 
+func writeJSON(value any) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetEscapeHTML(false)
+	return encoder.Encode(value)
+}
+
 func validatePublisher(value string) error {
 	if value == "" || value == "economist" || value == "wired" {
 		return nil
@@ -282,8 +355,9 @@ func usage() {
 
 Usage:
   magazines2db ingest [--db PATH] <issue-dir>
-  magazines2db search [--db PATH] [--publisher NAME] [--limit N] <query>
-  magazines2db read [--db PATH] <stable-id|numeric-id>
+  magazines2db search [--db PATH] [--publisher NAME] [--limit N] [--json] <query>
+  magazines2db read [--db PATH] [--json] <stable-id|numeric-id>
+  magazines2db list [--db PATH] [--page N] [--page-size N] [--json]
   magazines2db summarize [--db PATH] [--limit N] [--concurrency N]
 
 Configuration is loaded from ./cfg.json, or from cfg.json next to the executable.`)

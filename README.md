@@ -83,11 +83,24 @@ go run . ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
 ```bash
 go run . search "interest rates"
 go run . search --publisher wired "人工智能"
+go run . search --json "interest rates"
 go run . read economist:2026-06-13:the-world-cup-paradox
 go run . read 42
+go run . read --json 42
 ```
 
 搜索覆盖标题、副标题、英文正文和中文摘要。查询不足 3 个字符时自动使用 `LIKE`，其余使用 FTS5 trigram。
+
+`search` 和 `read` 支持 `--json`，用于 agent 或脚本提取结构化信息。`search` 返回 `count` 和 `results`，`read` 返回完整文章对象；JSON 字段统一使用 snake_case。
+
+分页获取文章标题和摘要时使用 `list`：
+
+```bash
+go run . list --page 1 --page-size 20
+go run . list --page 1 --page-size 20 --json
+```
+
+默认输出便于阅读的 plain text；传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`summary`；尚未生成摘要时，`summary` 使用正文前 200 个字符。
 
 ## 中文摘要
 

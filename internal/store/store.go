@@ -233,7 +233,7 @@ func (d *DB) Search(ctx context.Context, query, publisher string, limit int) ([]
 
 	builder := sq.Select(
 		"a.id", "a.stable_id", "a.publisher", "a.issue_date", "a.section", "a.title",
-		"snippet(articles_fts, -1, '[', ']', '…', 24)",
+		"substr(snippet(articles_fts, -1, '[', ']', '…', 200), 1, 200)",
 	).
 		From("articles_fts").
 		Join("articles a ON a.id = articles_fts.rowid").
@@ -251,7 +251,7 @@ func (d *DB) searchLike(ctx context.Context, query, publisher string, limit int)
 	builder := sq.Select(
 		"id", "stable_id", "publisher", "issue_date", "section", "title",
 	).
-		Column("substr(CASE WHEN summary_zh LIKE ? THEN summary_zh ELSE body END, 1, 240)", pattern).
+		Column("substr(CASE WHEN summary_zh LIKE ? THEN summary_zh ELSE body END, 1, 200)", pattern).
 		From("articles").
 		Where(sq.Or{
 			sq.Like{"title": pattern},
@@ -325,6 +325,51 @@ func (d *DB) Read(ctx context.Context, identifier string) (domain.StoredArticle,
 		return domain.StoredArticle{}, fmt.Errorf("read article: %w", err)
 	}
 	return article, nil
+}
+
+// ListArticleSummaries returns one page of titles and summaries, newest issues first.
+// Articles without a summary use the first 200 characters of their body.
+func (d *DB) ListArticleSummaries(ctx context.Context, page, pageSize int) ([]domain.ArticleSummary, int, error) {
+	countQuery, countArgs, err := sq.Select("COUNT(*)").From("articles").ToSql()
+	if err != nil {
+		return nil, 0, fmt.Errorf("build article count: %w", err)
+	}
+	var total int
+	if err := d.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count articles: %w", err)
+	}
+
+	query, args, err := sq.Select(
+		"id",
+		"title",
+		"COALESCE(NULLIF(summary_zh, ''), substr(body, 1, 200))",
+	).
+		From("articles").
+		OrderBy("issue_date DESC", "id").
+		Limit(uint64(pageSize)).
+		Offset(uint64((page - 1) * pageSize)).
+		ToSql()
+	if err != nil {
+		return nil, 0, fmt.Errorf("build article summary list: %w", err)
+	}
+	rows, err := d.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list article summaries: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]domain.ArticleSummary, 0, pageSize)
+	for rows.Next() {
+		var item domain.ArticleSummary
+		if err := rows.Scan(&item.ID, &item.Title, &item.Summary); err != nil {
+			return nil, 0, fmt.Errorf("scan article summary: %w", err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate article summaries: %w", err)
+	}
+	return items, total, nil
 }
 
 // PendingSummaries returns articles whose Chinese summary is empty.
