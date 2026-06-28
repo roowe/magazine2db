@@ -95,13 +95,19 @@ func (s *Service) Summarize(ctx context.Context, article domain.StoredArticle) (
 	return cleanSummary(response.Content), "fallback", nil
 }
 
-// IsSensitiveError recognizes the MiniMax sensitive-input response that must not be retried.
+// IsSensitiveError recognizes MiniMax sensitive responses that must not be retried.
 func IsSensitiveError(err error) bool {
 	if err == nil {
 		return false
 	}
-	text := strings.ToLower(err.Error())
-	return strings.Contains(text, "input new_sensitive") && strings.Contains(text, "1026")
+	return isSensitiveText(err.Error())
+}
+
+func isSensitiveText(value string) bool {
+	value = strings.ToLower(value)
+	inputRejected := strings.Contains(value, "input new_sensitive") && strings.Contains(value, "1026")
+	outputRejected := strings.Contains(value, "output new_sensitive") && strings.Contains(value, "1027")
+	return inputRejected || outputRejected
 }
 
 func formatArticle(article domain.StoredArticle) string {
@@ -145,8 +151,7 @@ func (t sensitiveNoRetryTransport) RoundTrip(request *http.Request) (*http.Respo
 		return nil, readErr
 	}
 	response.Body = io.NopCloser(bytes.NewReader(body))
-	lower := bytes.ToLower(body)
-	if bytes.Contains(lower, []byte("input new_sensitive")) && bytes.Contains(lower, []byte("1026")) {
+	if isSensitiveText(string(body)) {
 		// Anthropic SDK retries 5xx by default. Reclassifying this known deterministic
 		// rejection as 400 makes it return immediately so the fallback can run.
 		response.StatusCode = http.StatusBadRequest

@@ -104,14 +104,14 @@ go run . list --page 1 --page-size 20 --json
 
 ## 中文摘要
 
-摘要是独立步骤，默认并发 4，只处理尚无摘要的文章：
+摘要是独立步骤，默认并发 10，只处理尚无摘要的文章：
 
 ```bash
 go run . summarize
-go run . summarize --limit 20 --concurrency 4
+go run . summarize --limit 20 --concurrency 10
 ```
 
-底层使用 Eino 的 Claude ChatModel，通过 Anthropic Messages 协议请求。主 Provider 返回 `input new_sensitive (1026)` 时不会继续重试，而是立即改用 fallback Base URL；其他错误不会触发 fallback。成功摘要写回 SQLite，并由触发器同步更新 FTS 索引。
+底层使用 Eino 的 Claude ChatModel，通过 Anthropic Messages 协议请求。主 Provider 返回 `input new_sensitive (1026)` 或 `output new_sensitive (1027)` 时不会继续重试，而是立即改用 fallback Base URL；其他错误不会触发 fallback。成功摘要写回 SQLite，并由触发器同步更新 FTS 索引。
 
 ## 测试
 

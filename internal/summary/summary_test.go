@@ -31,15 +31,22 @@ func (f *fakeGenerator) Generate(context.Context, []*schema.Message, ...model.Op
 }
 
 func TestSensitiveErrorFallsBack(t *testing.T) {
-	primary := &fakeGenerator{err: errors.New(`500: {"message":"input new_sensitive (1026)"}`)}
-	fallback := &fakeGenerator{content: "这是中文摘要。"}
-	service := &Service{primary: primary, fallback: fallback}
-	text, provider, err := service.Summarize(context.Background(), domain.StoredArticle{Title: "Title", Body: "Body"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if text != "这是中文摘要。" || provider != "fallback" || fallback.calls != 1 {
-		t.Fatalf("unexpected fallback result: %q %q calls=%d", text, provider, fallback.calls)
+	for _, message := range []string{
+		`500: {"message":"input new_sensitive (1026)"}`,
+		`500: {"message":"output new_sensitive (1027)"}`,
+	} {
+		t.Run(message, func(t *testing.T) {
+			primary := &fakeGenerator{err: errors.New(message)}
+			fallback := &fakeGenerator{content: "这是中文摘要。"}
+			service := &Service{primary: primary, fallback: fallback}
+			text, provider, err := service.Summarize(context.Background(), domain.StoredArticle{Title: "Title", Body: "Body"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if text != "这是中文摘要。" || provider != "fallback" || fallback.calls != 1 {
+				t.Fatalf("unexpected fallback result: %q %q calls=%d", text, provider, fallback.calls)
+			}
+		})
 	}
 }
 
@@ -60,20 +67,24 @@ func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) 
 }
 
 func TestSensitiveTransportDisablesSDKRetryClassification(t *testing.T) {
-	transport := sensitiveNoRetryTransport{base: roundTripFunc(func(*http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: 500,
-			Status:     "500 Internal Server Error",
-			Body:       io.NopCloser(strings.NewReader(`{"error":{"message":"input new_sensitive (1026)"}}`)),
-			Header:     make(http.Header),
-		}, nil
-	})}
-	response, err := transport.RoundTrip(&http.Request{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400", response.StatusCode)
+	for _, message := range []string{"input new_sensitive (1026)", "output new_sensitive (1027)"} {
+		t.Run(message, func(t *testing.T) {
+			transport := sensitiveNoRetryTransport{base: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: 500,
+					Status:     "500 Internal Server Error",
+					Body:       io.NopCloser(strings.NewReader(`{"error":{"message":"` + message + `"}}`)),
+					Header:     make(http.Header),
+				}, nil
+			})}
+			response, err := transport.RoundTrip(&http.Request{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if response.StatusCode != http.StatusBadRequest {
+				t.Fatalf("status = %d, want 400", response.StatusCode)
+			}
+		})
 	}
 }
 
@@ -83,7 +94,7 @@ func TestEinoAnthropicSensitiveResponseFallsBackImmediately(t *testing.T) {
 		primaryCalls.Add(1)
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusInternalServerError)
-		_, _ = writer.Write([]byte(`{"error":{"message":"input new_sensitive (1026)","type":"api_error"},"type":"error"}`))
+		_, _ = writer.Write([]byte(`{"error":{"message":"output new_sensitive (1027)","type":"api_error"},"type":"error"}`))
 	}))
 	defer primary.Close()
 	fallback := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
