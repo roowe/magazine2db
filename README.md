@@ -15,11 +15,25 @@ SQLite 和 FTS5 由 Go 依赖内置，无需单独安装 SQLite。
 
 ## 构建
 
+Go 没有单独的 release profile，`go build` 默认会进行优化。开发时直接构建：
+
 ```bash
 go build -o magazines2db .
 ```
 
-也可以不构建，直接使用 `go run .`。
+发布时建议移除本机路径、符号表和调试信息，以减小二进制体积：
+
+```bash
+go build -trimpath -ldflags="-s -w" -o magazines2db .
+```
+
+需要完全静态的当前平台二进制时：
+
+```bash
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazines2db .
+```
+
+开发阶段也可以不构建，直接使用 `go run .`。
 
 程序按以下顺序推断工作目录：
 
