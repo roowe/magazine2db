@@ -1,9 +1,21 @@
 package parser
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestInspectInputRejectsFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "economist_2026.06.27.txt")
+	if err := os.WriteFile(path, []byte("fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InspectInput(path); err == nil || !strings.Contains(err.Error(), "issue directory") {
+		t.Fatalf("expected directory error, got %v", err)
+	}
+}
 
 func TestParseEconomistUsesBodyTitleAfterTOC(t *testing.T) {
 	text := strings.TrimSpace(`
@@ -18,7 +30,7 @@ June 11th 2026
 
 The article body is long enough to be unmistakably real content and not a table of contents entry.
 
-This article was downloaded by zlibrary from https://www.economist.com//leaders/2026/06/10/the-world-cup-paradox
+This article was downloaded by another-tool from https://www.economist.com//leaders/2026/06/10/the-world-cup-paradox
 `)
 	articles, err := parseEconomist(text, "2026-06-13")
 	if err != nil {
@@ -63,7 +75,7 @@ What Say You?
 
 This footer must not be stored.
 
-This article was downloaded by calibre from https://www.wired.com/story/first-title/
+This article was downloaded by another-tool from https://www.wired.com/story/first-title/
 
 | Next | Section menu | Main menu | Previous |
 * * *

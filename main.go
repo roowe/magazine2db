@@ -60,15 +60,14 @@ func run(ctx context.Context, args []string) error {
 func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	flags := flag.NewFlagSet("ingest", flag.ContinueOnError)
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
-	publisher := flags.String("publisher", "", "economist or wired (auto-detected by default)")
 	keep := flags.Int("keep", cfg.Retention, "number of latest issues retained per publisher")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 1 {
-		return errors.New("usage: magazines2db ingest [flags] <issue-dir|txt|epub>")
+		return errors.New("usage: magazines2db ingest [flags] <issue-dir>")
 	}
-	input, err := parser.InspectInput(flags.Arg(0), strings.ToLower(*publisher))
+	input, err := parser.InspectInput(flags.Arg(0))
 	if err != nil {
 		return err
 	}
@@ -282,7 +281,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `magazines2db - ingest and search Economist/Wired issues
 
 Usage:
-  magazines2db ingest [--db PATH] [--publisher NAME] <issue-dir|txt|epub>
+  magazines2db ingest [--db PATH] <issue-dir>
   magazines2db search [--db PATH] [--publisher NAME] [--limit N] <query>
   magazines2db read [--db PATH] <stable-id|numeric-id>
   magazines2db summarize [--db PATH] [--limit N] [--concurrency N]

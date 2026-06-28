@@ -69,14 +69,14 @@ mkdir -p logs
 
 ## 入库
 
-传入一期目录、TXT 或 EPUB：
+传入一期杂志目录：
 
 ```bash
 go run . ingest ./data/awesome-english-ebooks/01_economist/te_2026.06.13
 go run . ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
 ```
 
-工具优先读取目录中的 TXT；只有 EPUB 时调用本机 `ebook-convert` 临时转换。重复的 `publisher + issue_date` 会跳过。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章和 FTS 索引。
+工具只接受目录，优先读取其中的 TXT；只有 EPUB 时调用本机 `ebook-convert` 转换，产物 `.txt` 持久保存在 EPUB 同目录，下次直接复用，不再重复转换。重复的 `publisher + issue_date` 会跳过。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章和 FTS 索引。
 
 ## 搜索与读取
 

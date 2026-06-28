@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	_ "modernc.org/sqlite"
 
 	"magazine2db/internal/domain"
@@ -125,12 +126,20 @@ func (d *DB) Close() error {
 
 // HasIssue reports whether publisher+issue_date is already present.
 func (d *DB) HasIssue(ctx context.Context, publisher, issueDate string) (bool, error) {
-	var exists int
-	err := d.db.QueryRowContext(ctx,
-		`SELECT EXISTS(SELECT 1 FROM issues WHERE publisher = ? AND issue_date = ?)`,
-		publisher, issueDate,
-	).Scan(&exists)
-	return exists == 1, err
+	query, args, err := sq.Select("1").
+		From("issues").
+		Where(sq.Eq{"publisher": publisher, "issue_date": issueDate}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return false, fmt.Errorf("build issue lookup: %w", err)
+	}
+	var found int
+	err = d.db.QueryRowContext(ctx, query, args...).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // InsertIssue atomically stores an issue and removes issues older than the latest keep count.
@@ -144,11 +153,15 @@ func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) erro
 	}
 	defer tx.Rollback()
 
-	result, err := tx.ExecContext(ctx,
-		`INSERT OR IGNORE INTO issues(publisher, issue_date, source_path, imported_at)
-		 VALUES (?, ?, ?, ?)`,
-		issue.Publisher, issue.IssueDate, issue.SourcePath, time.Now().Format(time.RFC3339),
-	)
+	query, args, err := sq.Insert("issues").
+		Options("OR IGNORE").
+		Columns("publisher", "issue_date", "source_path", "imported_at").
+		Values(issue.Publisher, issue.IssueDate, issue.SourcePath, time.Now().Format(time.RFC3339)).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("build issue insert: %w", err)
+	}
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("insert issue: %w", err)
 	}
@@ -164,33 +177,39 @@ func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) erro
 		return fmt.Errorf("read issue id: %w", err)
 	}
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO articles(
-		    stable_id, issue_id, publisher, issue_date, slug, title, description,
-		    author, section, published_at, source_url, body
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-	if err != nil {
-		return fmt.Errorf("prepare article insert: %w", err)
-	}
-	defer stmt.Close()
 	for _, article := range issue.Articles {
-		if _, err := stmt.ExecContext(ctx,
-			article.StableID, issueID, issue.Publisher, issue.IssueDate, article.Slug,
-			article.Title, article.Description, article.Author, article.Section,
-			article.PublishedAt, article.SourceURL, article.Body,
-		); err != nil {
+		query, args, err = sq.Insert("articles").
+			Columns(
+				"stable_id", "issue_id", "publisher", "issue_date", "slug", "title",
+				"description", "author", "section", "published_at", "source_url", "body",
+			).
+			Values(
+				article.StableID, issueID, issue.Publisher, issue.IssueDate, article.Slug,
+				article.Title, article.Description, article.Author, article.Section,
+				article.PublishedAt, article.SourceURL, article.Body,
+			).
+			ToSql()
+		if err != nil {
+			return fmt.Errorf("build article insert %s: %w", article.StableID, err)
+		}
+		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
 			return fmt.Errorf("insert article %s: %w", article.StableID, err)
 		}
 	}
 
-	if _, err := tx.ExecContext(ctx, `
-		DELETE FROM issues
-		WHERE publisher = ? AND id IN (
-		    SELECT id FROM issues
-		    WHERE publisher = ?
-		    ORDER BY issue_date DESC, id DESC
-		    LIMIT -1 OFFSET ?
-		)`, issue.Publisher, issue.Publisher, keep); err != nil {
+	keptIssues := sq.Select("id").
+		From("issues").
+		Where(sq.Eq{"publisher": issue.Publisher}).
+		OrderBy("issue_date DESC", "id DESC").
+		Limit(uint64(keep))
+	query, args, err = sq.Delete("issues").
+		Where(sq.Eq{"publisher": issue.Publisher}).
+		Where(sq.Expr("id NOT IN (?)", keptIssues)).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("build retention delete: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
 		return fmt.Errorf("apply retention: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -212,37 +231,48 @@ func (d *DB) Search(ctx context.Context, query, publisher string, limit int) ([]
 		return d.searchLike(ctx, query, publisher, limit)
 	}
 
-	sqlText := `
-		SELECT a.id, a.stable_id, a.publisher, a.issue_date, a.section, a.title,
-		       snippet(articles_fts, -1, '[', ']', '…', 24)
-		FROM articles_fts
-		JOIN articles a ON a.id = articles_fts.rowid
-		WHERE articles_fts MATCH ?`
-	args := []any{quoteFTS(query)}
+	builder := sq.Select(
+		"a.id", "a.stable_id", "a.publisher", "a.issue_date", "a.section", "a.title",
+		"snippet(articles_fts, -1, '[', ']', '…', 24)",
+	).
+		From("articles_fts").
+		Join("articles a ON a.id = articles_fts.rowid").
+		Where("articles_fts MATCH ?", quoteFTS(query)).
+		OrderBy("articles_fts.rank").
+		Limit(uint64(limit))
 	if publisher != "" {
-		sqlText += ` AND a.publisher = ?`
-		args = append(args, publisher)
+		builder = builder.Where(sq.Eq{"a.publisher": publisher})
 	}
-	sqlText += ` ORDER BY articles_fts.rank LIMIT ?`
-	args = append(args, limit)
-	return scanHits(d.db.QueryContext(ctx, sqlText, args...))
+	return d.queryHits(ctx, builder)
 }
 
 func (d *DB) searchLike(ctx context.Context, query, publisher string, limit int) ([]domain.SearchHit, error) {
 	pattern := "%" + query + "%"
-	sqlText := `
-		SELECT id, stable_id, publisher, issue_date, section, title,
-		       substr(CASE WHEN summary_zh LIKE ? THEN summary_zh ELSE body END, 1, 240)
-		FROM articles
-		WHERE (title LIKE ? OR description LIKE ? OR body LIKE ? OR summary_zh LIKE ?)`
-	args := []any{pattern, pattern, pattern, pattern, pattern}
+	builder := sq.Select(
+		"id", "stable_id", "publisher", "issue_date", "section", "title",
+	).
+		Column("substr(CASE WHEN summary_zh LIKE ? THEN summary_zh ELSE body END, 1, 240)", pattern).
+		From("articles").
+		Where(sq.Or{
+			sq.Like{"title": pattern},
+			sq.Like{"description": pattern},
+			sq.Like{"body": pattern},
+			sq.Like{"summary_zh": pattern},
+		}).
+		OrderBy("issue_date DESC", "id").
+		Limit(uint64(limit))
 	if publisher != "" {
-		sqlText += ` AND publisher = ?`
-		args = append(args, publisher)
+		builder = builder.Where(sq.Eq{"publisher": publisher})
 	}
-	sqlText += ` ORDER BY issue_date DESC, id LIMIT ?`
-	args = append(args, limit)
-	return scanHits(d.db.QueryContext(ctx, sqlText, args...))
+	return d.queryHits(ctx, builder)
+}
+
+func (d *DB) queryHits(ctx context.Context, builder sq.SelectBuilder) ([]domain.SearchHit, error) {
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build article search: %w", err)
+	}
+	return scanHits(d.db.QueryContext(ctx, query, args...))
 }
 
 func scanHits(rows *sql.Rows, err error) ([]domain.SearchHit, error) {
@@ -267,18 +297,22 @@ func quoteFTS(query string) string {
 
 // Read loads one article by stable ID or numeric row ID.
 func (d *DB) Read(ctx context.Context, identifier string) (domain.StoredArticle, error) {
-	where := "stable_id = ?"
-	arg := any(identifier)
+	condition := sq.Eq{"stable_id": identifier}
 	if id, err := strconv.ParseInt(identifier, 10, 64); err == nil {
-		where = "id = ?"
-		arg = id
+		condition = sq.Eq{"id": id}
+	}
+	query, args, err := sq.Select(
+		"id", "stable_id", "publisher", "issue_date", "slug", "title", "description", "author",
+		"section", "published_at", "source_url", "body", "summary_zh", "summary_error",
+	).
+		From("articles").
+		Where(condition).
+		ToSql()
+	if err != nil {
+		return domain.StoredArticle{}, fmt.Errorf("build article read: %w", err)
 	}
 	var article domain.StoredArticle
-	err := d.db.QueryRowContext(ctx, `
-		SELECT id, stable_id, publisher, issue_date, slug, title, description, author,
-		       section, published_at, source_url, body, summary_zh, summary_error
-		FROM articles WHERE `+where, arg,
-	).Scan(
+	err = d.db.QueryRowContext(ctx, query, args...).Scan(
 		&article.ID, &article.StableID, &article.Publisher, &article.IssueDate,
 		&article.Slug, &article.Title, &article.Description, &article.Author,
 		&article.Section, &article.PublishedAt, &article.SourceURL, &article.Body,
@@ -295,16 +329,21 @@ func (d *DB) Read(ctx context.Context, identifier string) (domain.StoredArticle,
 
 // PendingSummaries returns articles whose Chinese summary is empty.
 func (d *DB) PendingSummaries(ctx context.Context, limit int) ([]domain.StoredArticle, error) {
-	sqlText := `
-		SELECT id, stable_id, publisher, issue_date, slug, title, description, author,
-		       section, published_at, source_url, body, summary_zh, summary_error
-		FROM articles WHERE summary_zh = '' ORDER BY issue_date DESC, id`
-	var args []any
+	builder := sq.Select(
+		"id", "stable_id", "publisher", "issue_date", "slug", "title", "description", "author",
+		"section", "published_at", "source_url", "body", "summary_zh", "summary_error",
+	).
+		From("articles").
+		Where(sq.Eq{"summary_zh": ""}).
+		OrderBy("issue_date DESC", "id")
 	if limit > 0 {
-		sqlText += ` LIMIT ?`
-		args = append(args, limit)
+		builder = builder.Limit(uint64(limit))
 	}
-	rows, err := d.db.QueryContext(ctx, sqlText, args...)
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build pending summaries query: %w", err)
+	}
+	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list pending summaries: %w", err)
 	}
@@ -327,10 +366,17 @@ func (d *DB) PendingSummaries(ctx context.Context, limit int) ([]domain.StoredAr
 
 // SaveSummary updates one summary; the FTS update trigger keeps search in sync.
 func (d *DB) SaveSummary(ctx context.Context, id int64, summary, provider string) error {
-	_, err := d.db.ExecContext(ctx, `
-		UPDATE articles
-		SET summary_zh = ?, summary_provider = ?, summary_error = '', summarized_at = ?
-		WHERE id = ?`, summary, provider, time.Now().Format(time.RFC3339), id)
+	query, args, err := sq.Update("articles").
+		Set("summary_zh", summary).
+		Set("summary_provider", provider).
+		Set("summary_error", "").
+		Set("summarized_at", time.Now().Format(time.RFC3339)).
+		Where(sq.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("build summary update: %w", err)
+	}
+	_, err = d.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("save summary for article %d: %w", id, err)
 	}
@@ -339,8 +385,14 @@ func (d *DB) SaveSummary(ctx context.Context, id int64, summary, provider string
 
 // SaveSummaryError records a failed attempt without removing the article from the retry queue.
 func (d *DB) SaveSummaryError(ctx context.Context, id int64, message string) error {
-	_, err := d.db.ExecContext(ctx,
-		`UPDATE articles SET summary_error = ? WHERE id = ?`, message, id)
+	query, args, err := sq.Update("articles").
+		Set("summary_error", message).
+		Where(sq.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("build summary error update: %w", err)
+	}
+	_, err = d.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("save summary error for article %d: %w", id, err)
 	}

@@ -3,6 +3,7 @@ module magazine2db
 go 1.25.0
 
 require (
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/cloudwego/eino v0.9.9
 	github.com/cloudwego/eino-ext/components/model/claude v0.1.20
 	modernc.org/sqlite v1.53.0
@@ -46,6 +47,8 @@ require (
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

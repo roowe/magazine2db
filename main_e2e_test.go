@@ -38,13 +38,13 @@ func TestCLIEndToEndWithRealSummaryAPI(t *testing.T) {
 	assertContains(t, help, "magazines2db ingest")
 
 	issuePath := writeE2EIssue(t, runtimeDir)
-	ingested := runE2ECommand(t, ctx, runtimeDir, binary, "ingest", "--publisher", "economist", issuePath)
+	ingested := runE2ECommand(t, ctx, runtimeDir, binary, "ingest", issuePath)
 	assertContains(t, ingested, "ingested: economist 2026-06-27, 1 articles")
 	if _, err := os.Stat(filepath.Join(runtimeDir, "magazines.db")); err != nil {
 		t.Fatalf("database was not created next to cfg.json: %v", err)
 	}
 
-	duplicate := runE2ECommand(t, ctx, runtimeDir, binary, "ingest", "--publisher", "economist", issuePath)
+	duplicate := runE2ECommand(t, ctx, runtimeDir, binary, "ingest", issuePath)
 	assertContains(t, duplicate, "skipped: economist 2026-06-27 already exists")
 
 	search := runE2ECommand(t, ctx, runtimeDir, binary, "search", "quantum network")
@@ -106,7 +106,11 @@ func prepareRuntime(t *testing.T, projectDir, runtimeDir string) {
 
 func writeE2EIssue(t *testing.T, runtimeDir string) string {
 	t.Helper()
-	path := filepath.Join(runtimeDir, "economist_2026.06.27.txt")
+	issueDir := filepath.Join(runtimeDir, "economist_2026.06.27")
+	if err := os.Mkdir(issueDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(issueDir, "issue.txt")
 	content := strings.TrimSpace(`
 Leaders
 A practical quantum network
@@ -124,7 +128,7 @@ This article was downloaded by zlibrary from https://www.economist.com//science-
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return path
+	return issueDir
 }
 
 func runE2ECommand(t *testing.T, ctx context.Context, dir, binary string, args ...string) string {
