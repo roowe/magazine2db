@@ -1,0 +1,10 @@
+.env
+magazine2db
+magazines2db
+data/
+logs/
+*.db
+*.db-shm
+*.db-wal
+.claude/settings.local.json
+.plan.json

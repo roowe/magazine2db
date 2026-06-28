@@ -1,0 +1,16 @@
+{
+  "database": "magazines.db",
+  "retention": 4,
+  "summary": {
+    "concurrency": 4,
+    "max_tokens": 4096,
+    "primary": {
+      "base_url": "https://api.minimaxi.com/anthropic",
+      "model": "MiniMax-M3"
+    },
+    "fallback": {
+      "base_url": "https://opencode.ai/zen/go",
+      "model": "minimax-m3"
+    }
+  }
+}
