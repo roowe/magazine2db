@@ -162,3 +162,9 @@ go test ./...
 ```bash
 go test -tags=e2e -run TestCLIEndToEndWithRealSummaryAPI -v .
 ```
+
+## 许可证与内容归属
+
+本项目源代码采用 [MIT License](LICENSE)。MIT 仅适用于本项目代码，不包含程序同步或处理的杂志、文章、图片、音频等第三方内容。
+
+杂志内容来源于 [hehonghui/awesome-english-ebooks](https://github.com/hehonghui/awesome-english-ebooks)，相关内容仍受来源仓库说明、原始出版方及版权持有人的权利约束，详见 [NOTICE](NOTICE)。
