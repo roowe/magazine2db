@@ -90,6 +90,15 @@ go run . ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
 
 工具只接受目录，优先读取其中的 TXT；只有 EPUB 时调用本机 `ebook-convert` 转换，产物 `.txt` 持久保存在 EPUB 同目录，下次直接复用，不再重复转换。重复的 `publisher + issue_date` 会跳过。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章和 FTS 索引。
 
+查看已经入库的期刊及其文章数量：
+
+```bash
+go run . issue
+go run . issue --json
+```
+
+默认按期刊日期倒序输出 plain text；`--json` 返回 `count` 和 `issues`。每期包含 `id`、`publisher`、`issue_date`、`article_count` 和 `imported_at`。
+
 ## 搜索与读取
 
 ```bash
@@ -109,10 +118,11 @@ go run . read --json 42
 
 ```bash
 go run . list --page 1 --page-size 20
+go run . list --issue 7 --page 1 --page-size 20
 go run . list --page 1 --page-size 20 --json
 ```
 
-默认输出便于阅读的 plain text；传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`summary`；尚未生成摘要时，`summary` 使用正文前 200 个字符。
+默认输出便于阅读的 plain text；使用 `--issue ID` 可只查看某一期。传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`summary`；`summary` 最多 200 个字符，尚未生成摘要时使用正文内容。
 
 ## 中文摘要
 

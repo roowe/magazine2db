@@ -37,7 +37,7 @@ func run(ctx context.Context, args []string) error {
 		usage()
 		return nil
 	}
-	if args[0] != "ingest" && args[0] != "search" && args[0] != "read" && args[0] != "list" && args[0] != "summarize" {
+	if args[0] != "ingest" && args[0] != "issue" && args[0] != "search" && args[0] != "read" && args[0] != "list" && args[0] != "summarize" {
 		usage()
 		return fmt.Errorf("unknown command %q", args[0])
 	}
@@ -48,6 +48,8 @@ func run(ctx context.Context, args []string) error {
 	switch args[0] {
 	case "ingest":
 		return runIngest(ctx, cfg, args[1:])
+	case "issue":
+		return runIssue(ctx, cfg, args[1:])
 	case "search":
 		return runSearch(ctx, cfg, args[1:])
 	case "read":
@@ -56,6 +58,37 @@ func run(ctx context.Context, args []string) error {
 		return runList(ctx, cfg, args[1:])
 	case "summarize":
 		return runSummarize(ctx, cfg, args[1:])
+	}
+	return nil
+}
+
+func runIssue(ctx context.Context, cfg config.Config, args []string) error {
+	flags := flag.NewFlagSet("issue", flag.ContinueOnError)
+	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
+	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return errors.New("usage: magazines2db issue [flags]")
+	}
+	db, err := store.Open(*dbPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	issues, err := db.ListIssues(ctx)
+	if err != nil {
+		return err
+	}
+	if *jsonOutput {
+		return writeJSON(struct {
+			Count  int                `json:"count"`
+			Issues []domain.IssueInfo `json:"issues"`
+		}{Count: len(issues), Issues: issues})
+	}
+	for _, issue := range issues {
+		fmt.Printf("[%d] %-10s %s  %d articles  %s\n", issue.ID, issue.Publisher, issue.IssueDate, issue.ArticleCount, issue.ImportedAt)
 	}
 	return nil
 }
@@ -171,6 +204,7 @@ func runList(ctx context.Context, cfg config.Config, args []string) error {
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
 	page := flags.Int("page", 1, "page number, starting from 1")
 	pageSize := flags.Int("page-size", 20, "number of articles per page")
+	issueID := flags.Int64("issue", 0, "filter by issue ID")
 	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -178,15 +212,15 @@ func runList(ctx context.Context, cfg config.Config, args []string) error {
 	if flags.NArg() != 0 {
 		return errors.New("usage: magazines2db list [flags]")
 	}
-	if *page < 1 || *pageSize < 1 {
-		return errors.New("page and page-size must be positive")
+	if *page < 1 || *pageSize < 1 || *issueID < 0 {
+		return errors.New("page and page-size must be positive; issue must not be negative")
 	}
 	db, err := store.Open(*dbPath)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	items, total, err := db.ListArticleSummaries(ctx, *page, *pageSize)
+	items, total, err := db.ListArticleSummaries(ctx, *page, *pageSize, *issueID)
 	if err != nil {
 		return err
 	}
@@ -355,9 +389,10 @@ func usage() {
 
 Usage:
   magazines2db ingest [--db PATH] <issue-dir>
+  magazines2db issue [--db PATH] [--json]
   magazines2db search [--db PATH] [--publisher NAME] [--limit N] [--json] <query>
   magazines2db read [--db PATH] [--json] <stable-id|numeric-id>
-  magazines2db list [--db PATH] [--page N] [--page-size N] [--json]
+  magazines2db list [--db PATH] [--page N] [--page-size N] [--issue ID] [--json]
   magazines2db summarize [--db PATH] [--limit N] [--concurrency N]
 
 Configuration is loaded from ./cfg.json, or from cfg.json next to the executable.`)

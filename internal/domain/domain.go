@@ -56,3 +56,12 @@ type ArticleSummary struct {
 	Title   string `json:"title"`
 	Summary string `json:"summary"`
 }
+
+// IssueInfo describes one imported magazine issue.
+type IssueInfo struct {
+	ID           int64  `json:"id"`
+	Publisher    string `json:"publisher"`
+	IssueDate    string `json:"issue_date"`
+	ArticleCount int    `json:"article_count"`
+	ImportedAt   string `json:"imported_at"`
+}

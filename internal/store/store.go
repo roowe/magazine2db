@@ -142,6 +142,39 @@ func (d *DB) HasIssue(ctx context.Context, publisher, issueDate string) (bool, e
 	return err == nil, err
 }
 
+// ListIssues returns imported issues, newest first.
+func (d *DB) ListIssues(ctx context.Context) ([]domain.IssueInfo, error) {
+	query, args, err := sq.Select(
+		"i.id", "i.publisher", "i.issue_date", "COUNT(a.id)", "i.imported_at",
+	).
+		From("issues i").
+		LeftJoin("articles a ON a.issue_id = i.id").
+		GroupBy("i.id", "i.publisher", "i.issue_date", "i.imported_at").
+		OrderBy("i.issue_date DESC", "i.publisher").
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build issue list: %w", err)
+	}
+	rows, err := d.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list issues: %w", err)
+	}
+	defer rows.Close()
+
+	issues := make([]domain.IssueInfo, 0)
+	for rows.Next() {
+		var issue domain.IssueInfo
+		if err := rows.Scan(&issue.ID, &issue.Publisher, &issue.IssueDate, &issue.ArticleCount, &issue.ImportedAt); err != nil {
+			return nil, fmt.Errorf("scan issue: %w", err)
+		}
+		issues = append(issues, issue)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate issues: %w", err)
+	}
+	return issues, nil
+}
+
 // InsertIssue atomically stores an issue and removes issues older than the latest keep count.
 func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) error {
 	if keep < 1 {
@@ -329,8 +362,24 @@ func (d *DB) Read(ctx context.Context, identifier string) (domain.StoredArticle,
 
 // ListArticleSummaries returns one page of titles and summaries, newest issues first.
 // Articles without a summary use the first 200 characters of their body.
-func (d *DB) ListArticleSummaries(ctx context.Context, page, pageSize int) ([]domain.ArticleSummary, int, error) {
-	countQuery, countArgs, err := sq.Select("COUNT(*)").From("articles").ToSql()
+func (d *DB) ListArticleSummaries(ctx context.Context, page, pageSize int, issueID int64) ([]domain.ArticleSummary, int, error) {
+	countBuilder := sq.Select("COUNT(*)").From("articles")
+	listBuilder := sq.Select(
+		"id",
+		"title",
+		"substr(COALESCE(NULLIF(summary_zh, ''), body), 1, 200)",
+	).
+		From("articles").
+		OrderBy("issue_date DESC", "id").
+		Limit(uint64(pageSize)).
+		Offset(uint64((page - 1) * pageSize))
+	if issueID > 0 {
+		condition := sq.Eq{"issue_id": issueID}
+		countBuilder = countBuilder.Where(condition)
+		listBuilder = listBuilder.Where(condition)
+	}
+
+	countQuery, countArgs, err := countBuilder.ToSql()
 	if err != nil {
 		return nil, 0, fmt.Errorf("build article count: %w", err)
 	}
@@ -339,16 +388,7 @@ func (d *DB) ListArticleSummaries(ctx context.Context, page, pageSize int) ([]do
 		return nil, 0, fmt.Errorf("count articles: %w", err)
 	}
 
-	query, args, err := sq.Select(
-		"id",
-		"title",
-		"COALESCE(NULLIF(summary_zh, ''), substr(body, 1, 200))",
-	).
-		From("articles").
-		OrderBy("issue_date DESC", "id").
-		Limit(uint64(pageSize)).
-		Offset(uint64((page - 1) * pageSize)).
-		ToSql()
+	query, args, err := listBuilder.ToSql()
 	if err != nil {
 		return nil, 0, fmt.Errorf("build article summary list: %w", err)
 	}

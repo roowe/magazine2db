@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -48,6 +49,20 @@ func TestCLIEndToEndWithRealSummaryAPI(t *testing.T) {
 
 	duplicate := runE2ECommand(t, ctx, runtimeDir, binary, "ingest", issuePath)
 	assertContains(t, duplicate, "skipped: economist 2026-06-27 already exists")
+	plainIssues := runE2ECommand(t, ctx, runtimeDir, binary, "issue")
+	assertContains(t, plainIssues, "economist  2026-06-27  1 articles")
+	jsonIssues := runE2ECommand(t, ctx, runtimeDir, binary, "issue", "--json")
+	var issueResult struct {
+		Count  int                `json:"count"`
+		Issues []domain.IssueInfo `json:"issues"`
+	}
+	if err := json.Unmarshal([]byte(jsonIssues), &issueResult); err != nil {
+		t.Fatalf("decode issue output: %v\n%s", err, jsonIssues)
+	}
+	if issueResult.Count != 1 || len(issueResult.Issues) != 1 || issueResult.Issues[0].ArticleCount != 1 {
+		t.Fatalf("unexpected issue output: %+v", issueResult)
+	}
+	issueID := strconv.FormatInt(issueResult.Issues[0].ID, 10)
 
 	search := runE2ECommand(t, ctx, runtimeDir, binary, "search", "quantum network")
 	assertContains(t, search, e2eArticleID)
@@ -79,10 +94,10 @@ func TestCLIEndToEndWithRealSummaryAPI(t *testing.T) {
 	if articleResult.StableID != e2eArticleID || articleResult.Body == "" {
 		t.Fatalf("unexpected JSON read output: %+v", articleResult)
 	}
-	plainList := runE2ECommand(t, ctx, runtimeDir, binary, "list", "--page", "1", "--page-size", "1")
+	plainList := runE2ECommand(t, ctx, runtimeDir, binary, "list", "--page", "1", "--page-size", "1", "--issue", issueID)
 	assertContains(t, plainList, "["+numericID[1]+"] A practical quantum network")
 	assertContains(t, plainList, "page 1 | page size 1 | total 1")
-	listOutput := runE2ECommand(t, ctx, runtimeDir, binary, "list", "--page", "1", "--page-size", "1", "--json")
+	listOutput := runE2ECommand(t, ctx, runtimeDir, binary, "list", "--page", "1", "--page-size", "1", "--issue", issueID, "--json")
 	var listResult struct {
 		Page     int                     `json:"page"`
 		PageSize int                     `json:"page_size"`

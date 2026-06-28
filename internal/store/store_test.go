@@ -51,6 +51,13 @@ func TestInsertRetentionSearchAndRead(t *testing.T) {
 	if len(hits) != 4 {
 		t.Fatalf("got %d retained search hits, want 4", len(hits))
 	}
+	issues, err := db.ListIssues(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 4 || issues[0].ID == 0 || issues[0].IssueDate != "2026-06-05" || issues[0].ArticleCount != 1 || issues[0].ImportedAt == "" {
+		t.Fatalf("unexpected issue list: %+v", issues)
+	}
 
 	if err := db.SaveSummary(ctx, article.ID, "央行关注通胀与利率。", "primary"); err != nil {
 		t.Fatal(err)
@@ -88,26 +95,35 @@ func TestListArticleSummariesPaginatesAndFallsBackToBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.SaveSummary(ctx, first.ID, "已有中文摘要。", "primary"); err != nil {
+	longSummary := strings.Repeat("摘", 220)
+	if err := db.SaveSummary(ctx, first.ID, longSummary, "primary"); err != nil {
 		t.Fatal(err)
 	}
 
-	items, total, err := db.ListArticleSummaries(ctx, 1, 2)
+	issues, err := db.ListIssues(ctx)
+	if err != nil || len(issues) != 1 {
+		t.Fatalf("issues = %+v, err=%v", issues, err)
+	}
+	items, total, err := db.ListArticleSummaries(ctx, 1, 2, issues[0].ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if total != 3 || len(items) != 2 {
 		t.Fatalf("total=%d items=%d, want 3 and 2", total, len(items))
 	}
-	if items[0].Summary != "已有中文摘要。" {
-		t.Fatalf("stored summary = %q", items[0].Summary)
+	if items[0].Summary != strings.Repeat("摘", 200) {
+		t.Fatalf("stored summary length = %d, want 200", len([]rune(items[0].Summary)))
 	}
 	if got := len([]rune(items[1].Summary)); got != 200 {
 		t.Fatalf("fallback body length = %d, want 200", got)
 	}
-	secondPage, _, err := db.ListArticleSummaries(ctx, 2, 2)
+	secondPage, _, err := db.ListArticleSummaries(ctx, 2, 2, issues[0].ID)
 	if err != nil || len(secondPage) != 1 {
 		t.Fatalf("second page = %+v, err=%v", secondPage, err)
+	}
+	empty, emptyTotal, err := db.ListArticleSummaries(ctx, 1, 2, issues[0].ID+1000)
+	if err != nil || emptyTotal != 0 || len(empty) != 0 {
+		t.Fatalf("unknown issue result = %+v total=%d err=%v", empty, emptyTotal, err)
 	}
 }
 
