@@ -57,15 +57,27 @@ MAGAZINE_FALLBACK_API_KEY=...
 
 杂志保存在 `data/awesome-english-ebooks/`，整个 `data/` 目录已被 Git 忽略。可以通过 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量覆盖默认值。
 
-需要每天自动更新时，先创建日志目录，再把任务加入 `crontab -e`：
+每天自动执行“同步 → 入库新期刊 → 生成待处理摘要”时，先构建二进制并创建日志目录：
 
 ```bash
+go build -o magazines2db .
 mkdir -p logs
 ```
 
-```cron
-20 6 * * * cd /path/to/magazine2db && ./scripts/sync_magazines.sh >> logs/sync.log 2>&1
+先手动验证一次：
+
+```bash
+./scripts/daily.sh
 ```
+
+然后执行 `crontab -e`，加入：
+
+```cron
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Applications/calibre.app/Contents/MacOS
+20 6 * * * cd /path/to/magazine2db && ./scripts/daily.sh >> logs/daily.log 2>&1
+```
+
+每天 6:20 运行。脚本带有互斥锁，重复触发会直接退出；已有期刊由 `ingest` 自动跳过，只为尚无摘要的文章调用模型。可以通过 `MAGAZINES2DB_BIN` 覆盖二进制路径，并继续使用同步脚本支持的 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量。
 
 ## 入库
 
