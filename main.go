@@ -107,6 +107,10 @@ func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
+	if !parser.HasSource(input.Path) {
+		fmt.Printf("skipped: %s %s (no TXT/EPUB in directory)\n", input.Publisher, input.IssueDate)
+		return nil
+	}
 	db, err := store.Open(*dbPath)
 	if err != nil {
 		return err

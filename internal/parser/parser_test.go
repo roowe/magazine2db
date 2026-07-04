@@ -7,6 +7,25 @@ import (
 	"testing"
 )
 
+func TestHasSource(t *testing.T) {
+	dir := t.TempDir()
+	if HasSource(dir) {
+		t.Fatal("empty directory should have no source")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if HasSource(dir) {
+		t.Fatal("README-only directory should have no source")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "issue.epub"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if !HasSource(dir) {
+		t.Fatal("directory with EPUB should have source")
+	}
+}
+
 func TestInspectInputRejectsFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "economist_2026.06.27.txt")
 	if err := os.WriteFile(path, []byte("fixture"), 0o600); err != nil {

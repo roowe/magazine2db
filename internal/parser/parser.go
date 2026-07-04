@@ -28,6 +28,24 @@ type Input struct {
 	IssueDate string
 }
 
+// HasSource reports whether an issue directory contains a TXT or EPUB to parse.
+func HasSource(path string) bool {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		switch strings.ToLower(filepath.Ext(entry.Name())) {
+		case ".txt", ".epub":
+			return true
+		}
+	}
+	return false
+}
+
 // InspectInput detects publisher and issue date without converting the source.
 func InspectInput(path string) (Input, error) {
 	abs, err := filepath.Abs(path)
