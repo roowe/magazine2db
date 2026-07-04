@@ -4,11 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 TARGET_DIR="${TARGET_DIR:-$PROJECT_ROOT/data/awesome-english-ebooks}"
-BINARY="${MAGAZINES2DB_BIN:-$PROJECT_ROOT/magazines2db}"
+BINARY="${MAGAZINE2DB_BIN:-$PROJECT_ROOT/magazine2db}"
 
 if [ ! -x "$BINARY" ]; then
-  echo "magazines2db binary is missing or not executable: $BINARY" >&2
-  echo "build it first: go build -o magazines2db ." >&2
+  echo "magazine2db binary is missing or not executable: $BINARY" >&2
+  echo "build it first: go build -o magazine2db ." >&2
   exit 1
 fi
 
