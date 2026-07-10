@@ -30,7 +30,7 @@ type Config struct {
 	Summary   Summary `json:"summary"`
 }
 
-var apiKeyPattern = regexp.MustCompile(`(?m)\b(MAGAZINE_(?:PRIMARY|FALLBACK)_API_KEY)\s*=\s*("[^"]*"|'[^']*'|[^\s#]+)`)
+var providerEnvPattern = regexp.MustCompile(`(?m)\b(MYAI_API_KEY|MYAI_BASE_URL|OLLAMA_API_KEY)\s*=\s*("[^"]*"|'[^']*'|[^\s#]+)`)
 
 func Load() (Config, error) {
 	cwd, err := os.Getwd()
@@ -80,7 +80,7 @@ func LoadFrom(cwd, executable string) (Config, error) {
 	if !filepath.IsAbs(cfg.Database) {
 		cfg.Database = filepath.Join(cfg.WorkDir, cfg.Database)
 	}
-	if err := loadAPIKeys(filepath.Join(cfg.WorkDir, ".env"), &cfg); err != nil {
+	if err := loadProviderEnv(filepath.Join(cfg.WorkDir, ".env"), &cfg); err != nil {
 		return Config{}, err
 	}
 	if err := cfg.validate(); err != nil {
@@ -89,13 +89,13 @@ func LoadFrom(cwd, executable string) (Config, error) {
 	return cfg, nil
 }
 
-func loadAPIKeys(path string, cfg *Config) error {
+func loadProviderEnv(path string, cfg *Config) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", path, err)
 	}
 	values := make(map[string]string)
-	for _, match := range apiKeyPattern.FindAllStringSubmatch(string(content), -1) {
+	for _, match := range providerEnvPattern.FindAllStringSubmatch(string(content), -1) {
 		value := match[2]
 		if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') {
 			if value[0] == '"' {
@@ -110,8 +110,9 @@ func loadAPIKeys(path string, cfg *Config) error {
 		}
 		values[match[1]] = value
 	}
-	cfg.Summary.Primary.APIKey = values["MAGAZINE_PRIMARY_API_KEY"]
-	cfg.Summary.Fallback.APIKey = values["MAGAZINE_FALLBACK_API_KEY"]
+	cfg.Summary.Primary.BaseURL = values["MYAI_BASE_URL"]
+	cfg.Summary.Primary.APIKey = values["MYAI_API_KEY"]
+	cfg.Summary.Fallback.APIKey = values["OLLAMA_API_KEY"]
 	return nil
 }
 
@@ -129,10 +130,10 @@ func (cfg Config) validate() error {
 		return errors.New("summary.max_tokens must be positive")
 	}
 	if cfg.Summary.Primary.BaseURL == "" || cfg.Summary.Primary.Model == "" || cfg.Summary.Primary.APIKey == "" {
-		return errors.New("summary primary base_url, model and MAGAZINE_PRIMARY_API_KEY are required")
+		return errors.New("summary primary model, MYAI_BASE_URL and MYAI_API_KEY are required")
 	}
 	if cfg.Summary.Fallback.BaseURL == "" || cfg.Summary.Fallback.Model == "" || cfg.Summary.Fallback.APIKey == "" {
-		return errors.New("summary fallback base_url, model and MAGAZINE_FALLBACK_API_KEY are required")
+		return errors.New("summary fallback base_url, model and OLLAMA_API_KEY are required")
 	}
 	return nil
 }

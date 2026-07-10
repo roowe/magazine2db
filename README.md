@@ -52,11 +52,12 @@ runtime/
 └── magazines.db
 ```
 
-`cfg.json` 保存数据库、保留期数、并发数、最大 token、Provider URL 和模型；`.env` 只保存密钥：
+`cfg.json` 保存数据库、保留期数、并发数、最大 token、模型和 Ollama Cloud URL；`.env` 保存 MyAI URL 与两个 Provider 的密钥（与 `news2db` 一致）：
 
 ```dotenv
-MAGAZINE_PRIMARY_API_KEY=...
-MAGAZINE_FALLBACK_API_KEY=...
+MYAI_API_KEY=...
+MYAI_BASE_URL=https://example.com/v1
+OLLAMA_API_KEY=...
 ```
 
 `--db` 仍可临时覆盖 `cfg.json` 中的数据库路径。
@@ -147,7 +148,7 @@ go run . summarize
 go run . summarize --limit 20 --concurrency 10
 ```
 
-底层使用 Eino 的 Claude ChatModel，通过 Anthropic Messages 协议请求。主 Provider 返回 `input new_sensitive (1026)` 或 `output new_sensitive (1027)` 时不会继续重试，而是立即改用 fallback Base URL；其他错误不会触发 fallback。成功摘要写回 SQLite，并由触发器同步更新 FTS 索引。
+底层使用 Eino 的 OpenAI 与 Ollama ChatModel。主 Provider 默认为 `myai/deepseek-v4-pro`，通过 OpenAI Chat Completions 协议请求 `${MYAI_BASE_URL}/chat/completions`；fallback 默认为 `ollama-cloud/gemma4`，通过 Ollama Cloud 原生协议请求 `https://ollama.com/api/chat`。主 Provider 发生任何错误时都会立即切换 fallback；如果 fallback 也失败，错误中会同时保留两个 Provider 的失败原因。成功摘要及实际使用的 `provider/model` 会写回 SQLite，并由触发器同步更新 FTS 索引。
 
 ## 测试
 

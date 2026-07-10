@@ -12,8 +12,8 @@ const testConfig = `{
   "summary": {
     "concurrency": 4,
     "max_tokens": 4096,
-    "primary": {"base_url": "https://primary.example", "model": "primary-model"},
-    "fallback": {"base_url": "https://fallback.example", "model": "fallback-model"}
+    "primary": {"model": "deepseek-v4-pro"},
+    "fallback": {"base_url": "https://ollama.com", "model": "gemma4"}
   }
 }`
 
@@ -33,6 +33,9 @@ func TestLoadFromPrefersCurrentDirectory(t *testing.T) {
 	}
 	if cfg.Summary.Primary.APIKey != "cwd-primary" || cfg.Summary.Fallback.APIKey != "cwd-fallback" {
 		t.Fatal("API keys were not loaded from cwd/.env")
+	}
+	if cfg.Summary.Primary.BaseURL != "https://myai.example/v1" {
+		t.Fatalf("MyAI base URL = %q", cfg.Summary.Primary.BaseURL)
 	}
 }
 
@@ -58,8 +61,9 @@ func writeRuntime(t *testing.T, name, primaryKey, fallbackKey string) string {
 	if err := os.WriteFile(filepath.Join(dir, "cfg.json"), []byte(testConfig), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	env := "export MAGAZINE_PRIMARY_API_KEY=\"" + primaryKey + "\"\n" +
-		"export MAGAZINE_FALLBACK_API_KEY='" + fallbackKey + "'\n"
+	env := "export MYAI_API_KEY=\"" + primaryKey + "\"\n" +
+		"export MYAI_BASE_URL='https://myai.example/v1'\n" +
+		"export OLLAMA_API_KEY='" + fallbackKey + "'\n"
 	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(env), 0o600); err != nil {
 		t.Fatal(err)
 	}

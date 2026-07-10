@@ -1,16 +1,16 @@
 package summary
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"github.com/cloudwego/eino-ext/components/model/claude"
+	einoollama "github.com/cloudwego/eino-ext/components/model/ollama"
+	einoopenai "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 
@@ -24,15 +24,16 @@ const systemPrompt = `你是阅读助手。请根据文章原文生成一段的�
 3、不要添加原文没有的信息；
 4、不要输出标题、列表、标签、投资建议或任何前后缀，`
 
-// Generator is the Eino ChatModel surface used by the summarizer.
 type Generator interface {
 	Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error)
 }
 
-// Service calls a primary Anthropic-compatible provider and a sensitive-content fallback.
+// Service calls MyAI over OpenAI Chat Completions, then Ollama Cloud if MyAI fails.
 type Service struct {
-	primary  Generator
-	fallback Generator
+	primary          Generator
+	fallback         Generator
+	primaryProvider  string
+	fallbackProvider string
 }
 
 type Config struct {
@@ -45,69 +46,90 @@ type Config struct {
 	MaxTokens       int
 }
 
-// New builds both MiniMax Anthropic-protocol providers.
 func New(ctx context.Context, cfg Config) (*Service, error) {
 	if cfg.PrimaryBaseURL == "" || cfg.PrimaryAPIKey == "" || cfg.PrimaryModel == "" ||
 		cfg.FallbackBaseURL == "" || cfg.FallbackAPIKey == "" || cfg.FallbackModel == "" || cfg.MaxTokens < 1 {
 		return nil, errors.New("incomplete summary configuration")
 	}
-
+	primaryBaseURL, err := normalizeBaseURL(cfg.PrimaryBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MyAI base URL: %w", err)
+	}
+	fallbackBaseURL, err := normalizeBaseURL(cfg.FallbackBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid Ollama Cloud base URL: %w", err)
+	}
 	temperature := float32(0.2)
-	primary, err := claude.NewChatModel(ctx, &claude.Config{
-		BaseURL: &cfg.PrimaryBaseURL, APIKey: cfg.PrimaryAPIKey, Model: cfg.PrimaryModel,
-		MaxTokens: cfg.MaxTokens, Temperature: &temperature,
+	primary, err := einoopenai.NewChatModel(ctx, &einoopenai.ChatModelConfig{
+		BaseURL: primaryBaseURL, APIKey: cfg.PrimaryAPIKey, Model: cfg.PrimaryModel,
+		MaxTokens: &cfg.MaxTokens, Temperature: &temperature,
+		HTTPClient: &http.Client{Timeout: 3 * time.Minute},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create MyAI Eino OpenAI model: %w", err)
+	}
+	fallback, err := einoollama.NewChatModel(ctx, &einoollama.ChatModelConfig{
+		BaseURL: fallbackBaseURL,
+		Model:   cfg.FallbackModel,
+		Options: &einoollama.Options{Temperature: temperature, NumPredict: cfg.MaxTokens},
 		HTTPClient: &http.Client{
-			Transport: sensitiveNoRetryTransport{base: http.DefaultTransport},
+			Transport: bearerTransport{base: http.DefaultTransport, apiKey: cfg.FallbackAPIKey},
 			Timeout:   3 * time.Minute,
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create primary Eino Claude model: %w", err)
+		return nil, fmt.Errorf("create Ollama Cloud Eino model: %w", err)
 	}
-	fallback, err := claude.NewChatModel(ctx, &claude.Config{
-		BaseURL: &cfg.FallbackBaseURL, APIKey: cfg.FallbackAPIKey, Model: cfg.FallbackModel,
-		MaxTokens: cfg.MaxTokens, Temperature: &temperature,
-		HTTPClient: &http.Client{Timeout: 3 * time.Minute},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create fallback Eino Claude model: %w", err)
-	}
-	return &Service{primary: primary, fallback: fallback}, nil
+	return &Service{
+		primary:          primary,
+		fallback:         fallback,
+		primaryProvider:  "myai/" + cfg.PrimaryModel,
+		fallbackProvider: "ollama-cloud/" + cfg.FallbackModel,
+	}, nil
 }
 
-// Summarize returns the Chinese summary and the provider that produced it.
+// Summarize returns the Chinese summary and the provider/model that produced it.
 func (s *Service) Summarize(ctx context.Context, article domain.StoredArticle) (string, string, error) {
 	messages := []*schema.Message{
 		schema.SystemMessage(systemPrompt),
 		schema.UserMessage(formatArticle(article)),
 	}
-	response, err := s.primary.Generate(ctx, messages)
-	if err == nil {
-		return cleanSummary(response.Content), "primary", nil
+	response, primaryErr := s.primary.Generate(ctx, messages)
+	if primaryErr == nil {
+		return cleanSummary(response.Content), s.primaryProvider, nil
 	}
-	if !IsSensitiveError(err) {
-		return "", "primary", fmt.Errorf("primary provider: %w", err)
+	response, fallbackErr := s.fallback.Generate(ctx, messages)
+	if fallbackErr != nil {
+		return "", s.fallbackProvider, errors.Join(
+			fmt.Errorf("primary provider: %w", primaryErr),
+			fmt.Errorf("fallback provider: %w", fallbackErr),
+		)
 	}
-	response, err = s.fallback.Generate(ctx, messages)
+	return cleanSummary(response.Content), s.fallbackProvider, nil
+}
+
+func normalizeBaseURL(value string) (string, error) {
+	value = strings.TrimRight(strings.TrimSpace(value), "/")
+	parsed, err := url.Parse(value)
 	if err != nil {
-		return "", "fallback", fmt.Errorf("fallback provider after sensitive-content rejection: %w", err)
+		return "", err
 	}
-	return cleanSummary(response.Content), "fallback", nil
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", errors.New("URL must include scheme and host")
+	}
+	return value, nil
 }
 
-// IsSensitiveError recognizes MiniMax sensitive responses that must not be retried.
-func IsSensitiveError(err error) bool {
-	if err == nil {
-		return false
-	}
-	return isSensitiveText(err.Error())
+type bearerTransport struct {
+	base   http.RoundTripper
+	apiKey string
 }
 
-func isSensitiveText(value string) bool {
-	value = strings.ToLower(value)
-	inputRejected := strings.Contains(value, "input new_sensitive") && strings.Contains(value, "1026")
-	outputRejected := strings.Contains(value, "output new_sensitive") && strings.Contains(value, "1027")
-	return inputRejected || outputRejected
+func (t bearerTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	request = request.Clone(request.Context())
+	request.Header = request.Header.Clone()
+	request.Header.Set("Authorization", "Bearer "+t.apiKey)
+	return t.base.RoundTrip(request)
 }
 
 func formatArticle(article domain.StoredArticle) string {
@@ -134,28 +156,4 @@ func cleanSummary(value string) string {
 	value = strings.TrimPrefix(value, "```")
 	value = strings.TrimSuffix(value, "```")
 	return strings.TrimSpace(value)
-}
-
-type sensitiveNoRetryTransport struct {
-	base http.RoundTripper
-}
-
-func (t sensitiveNoRetryTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	response, err := t.base.RoundTrip(request)
-	if err != nil || response == nil || response.StatusCode < 500 || response.Body == nil {
-		return response, err
-	}
-	body, readErr := io.ReadAll(response.Body)
-	_ = response.Body.Close()
-	if readErr != nil {
-		return nil, readErr
-	}
-	response.Body = io.NopCloser(bytes.NewReader(body))
-	if isSensitiveText(string(body)) {
-		// Anthropic SDK retries 5xx by default. Reclassifying this known deterministic
-		// rejection as 400 makes it return immediately so the fallback can run.
-		response.StatusCode = http.StatusBadRequest
-		response.Status = "400 Bad Request"
-	}
-	return response, nil
 }
