@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	einoollama "github.com/cloudwego/eino-ext/components/model/ollama"
 	einoopenai "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
@@ -60,25 +59,23 @@ func New(ctx context.Context, cfg Config) (*Service, error) {
 		return nil, fmt.Errorf("invalid Ollama Cloud base URL: %w", err)
 	}
 	temperature := float32(0.2)
+	httpClient := &http.Client{Timeout: 3 * time.Minute}
 	primary, err := einoopenai.NewChatModel(ctx, &einoopenai.ChatModelConfig{
 		BaseURL: primaryBaseURL, APIKey: cfg.PrimaryAPIKey, Model: cfg.PrimaryModel,
-		MaxTokens: &cfg.MaxTokens, Temperature: &temperature,
-		HTTPClient: &http.Client{Timeout: 3 * time.Minute},
+		MaxTokens: &cfg.MaxTokens, Temperature: &temperature, HTTPClient: httpClient,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create MyAI Eino OpenAI model: %w", err)
 	}
-	fallback, err := einoollama.NewChatModel(ctx, &einoollama.ChatModelConfig{
-		BaseURL: fallbackBaseURL,
-		Model:   cfg.FallbackModel,
-		Options: &einoollama.Options{Temperature: temperature, NumPredict: cfg.MaxTokens},
-		HTTPClient: &http.Client{
-			Transport: bearerTransport{base: http.DefaultTransport, apiKey: cfg.FallbackAPIKey},
-			Timeout:   3 * time.Minute,
-		},
+	// Use OpenAI-compatible /v1 on ollama.com with Bearer API key.
+	// The native Ollama Go client always signs ollama.com with ~/.ollama/id_ed25519,
+	// which fails on servers that only have OLLAMA_API_KEY.
+	fallback, err := einoopenai.NewChatModel(ctx, &einoopenai.ChatModelConfig{
+		BaseURL: fallbackBaseURL, APIKey: cfg.FallbackAPIKey, Model: cfg.FallbackModel,
+		MaxTokens: &cfg.MaxTokens, Temperature: &temperature, HTTPClient: httpClient,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create Ollama Cloud Eino model: %w", err)
+		return nil, fmt.Errorf("create Ollama Cloud Eino OpenAI model: %w", err)
 	}
 	return &Service{
 		primary:          primary,
@@ -118,18 +115,6 @@ func normalizeBaseURL(value string) (string, error) {
 		return "", errors.New("URL must include scheme and host")
 	}
 	return value, nil
-}
-
-type bearerTransport struct {
-	base   http.RoundTripper
-	apiKey string
-}
-
-func (t bearerTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	request = request.Clone(request.Context())
-	request.Header = request.Header.Clone()
-	request.Header.Set("Authorization", "Bearer "+t.apiKey)
-	return t.base.RoundTrip(request)
 }
 
 func formatArticle(article domain.StoredArticle) string {

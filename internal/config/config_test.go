@@ -13,7 +13,7 @@ const testConfig = `{
     "concurrency": 4,
     "max_tokens": 4096,
     "primary": {"model": "deepseek-v4-pro"},
-    "fallback": {"base_url": "https://ollama.com", "model": "gemma4"}
+    "fallback": {"base_url": "https://ollama.com/v1", "model": "deepseek-v4-pro"}
   }
 }`
 

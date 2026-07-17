@@ -8,8 +8,8 @@
       "model": "deepseek-v4-pro"
     },
     "fallback": {
-      "base_url": "https://ollama.com",
-      "model": "gemma4"
+      "base_url": "https://ollama.com/v1",
+      "model": "deepseek-v4-pro"
     }
   }
 }

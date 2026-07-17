@@ -148,7 +148,7 @@ go run . summarize
 go run . summarize --limit 20 --concurrency 10
 ```
 
-底层使用 Eino 的 OpenAI 与 Ollama ChatModel。主 Provider 默认为 `myai/deepseek-v4-pro`，通过 OpenAI Chat Completions 协议请求 `${MYAI_BASE_URL}/chat/completions`；fallback 默认为 `ollama-cloud/gemma4`，通过 Ollama Cloud 原生协议请求 `https://ollama.com/api/chat`。主 Provider 发生任何错误时都会立即切换 fallback；如果 fallback 也失败，错误中会同时保留两个 Provider 的失败原因。成功摘要及实际使用的 `provider/model` 会写回 SQLite，并由触发器同步更新 FTS 索引。
+底层使用 Eino 的 OpenAI ChatModel。主 Provider 默认为 `myai/deepseek-v4-pro`，请求 `${MYAI_BASE_URL}/chat/completions`；fallback 默认为 `ollama-cloud/deepseek-v4-pro`，通过 Ollama Cloud 的 OpenAI 兼容接口请求 `https://ollama.com/v1/chat/completions`（Bearer `OLLAMA_API_KEY`）。主 Provider 发生任何错误时都会立即切换 fallback；如果 fallback 也失败，错误中会同时保留两个 Provider 的失败原因。成功摘要及实际使用的 `provider/model` 会写回 SQLite，并由触发器同步更新 FTS 索引。
 
 ## 测试
 
