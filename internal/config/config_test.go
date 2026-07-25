@@ -13,7 +13,7 @@ const testConfig = `{
     "concurrency": 4,
     "max_tokens": 4096,
     "primary": {"model": "deepseek-v4-pro"},
-    "fallback": {"base_url": "https://ollama.com/v1", "model": "deepseek-v4-pro"}
+    "fallback": {"base_url": "https://opencode.ai/zen/go/v1", "model": "deepseek-v4-flash"}
   }
 }`
 
@@ -63,7 +63,7 @@ func writeRuntime(t *testing.T, name, primaryKey, fallbackKey string) string {
 	}
 	env := "export MYAI_API_KEY=\"" + primaryKey + "\"\n" +
 		"export MYAI_BASE_URL='https://myai.example/v1'\n" +
-		"export OLLAMA_API_KEY='" + fallbackKey + "'\n"
+		"export OPENCODE_API_KEY='" + fallbackKey + "'\n"
 	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(env), 0o600); err != nil {
 		t.Fatal(err)
 	}

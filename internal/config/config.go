@@ -30,7 +30,7 @@ type Config struct {
 	Summary   Summary `json:"summary"`
 }
 
-var providerEnvPattern = regexp.MustCompile(`(?m)\b(MYAI_API_KEY|MYAI_BASE_URL|OLLAMA_API_KEY)\s*=\s*("[^"]*"|'[^']*'|[^\s#]+)`)
+var providerEnvPattern = regexp.MustCompile(`(?m)\b(MYAI_API_KEY|MYAI_BASE_URL|OPENCODE_API_KEY)\s*=\s*("[^"]*"|'[^']*'|[^\s#]+)`)
 
 func Load() (Config, error) {
 	cwd, err := os.Getwd()
@@ -112,7 +112,7 @@ func loadProviderEnv(path string, cfg *Config) error {
 	}
 	cfg.Summary.Primary.BaseURL = values["MYAI_BASE_URL"]
 	cfg.Summary.Primary.APIKey = values["MYAI_API_KEY"]
-	cfg.Summary.Fallback.APIKey = values["OLLAMA_API_KEY"]
+	cfg.Summary.Fallback.APIKey = values["OPENCODE_API_KEY"]
 	return nil
 }
 
@@ -133,7 +133,7 @@ func (cfg Config) validate() error {
 		return errors.New("summary primary model, MYAI_BASE_URL and MYAI_API_KEY are required")
 	}
 	if cfg.Summary.Fallback.BaseURL == "" || cfg.Summary.Fallback.Model == "" || cfg.Summary.Fallback.APIKey == "" {
-		return errors.New("summary fallback base_url, model and OLLAMA_API_KEY are required")
+		return errors.New("summary fallback base_url, model and OPENCODE_API_KEY are required")
 	}
 	return nil
 }

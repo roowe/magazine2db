@@ -52,12 +52,12 @@ runtime/
 └── magazines.db
 ```
 
-`cfg.json` 保存数据库、保留期数、并发数、最大 token、模型和 Ollama Cloud URL；`.env` 保存 MyAI URL 与两个 Provider 的密钥（与 `news2db` 一致）：
+`cfg.json` 保存数据库、保留期数、并发数、最大 token、模型和 OpenCode Go URL；`.env` 保存 MyAI URL 与两个 Provider 的密钥：
 
 ```dotenv
 MYAI_API_KEY=...
 MYAI_BASE_URL=https://example.com/v1
-OLLAMA_API_KEY=...
+OPENCODE_API_KEY=...
 ```
 
 `--db` 仍可临时覆盖 `cfg.json` 中的数据库路径。
@@ -148,7 +148,13 @@ go run . summarize
 go run . summarize --limit 20 --concurrency 10
 ```
 
-底层使用 Eino 的 OpenAI ChatModel。主 Provider 默认为 `myai/deepseek-v4-pro`，请求 `${MYAI_BASE_URL}/chat/completions`；fallback 默认为 `ollama-cloud/deepseek-v4-pro`，通过 Ollama Cloud 的 OpenAI 兼容接口请求 `https://ollama.com/v1/chat/completions`（Bearer `OLLAMA_API_KEY`）。主 Provider 发生任何错误时都会立即切换 fallback；如果 fallback 也失败，错误中会同时保留两个 Provider 的失败原因。成功摘要及实际使用的 `provider/model` 会写回 SQLite，并由触发器同步更新 FTS 索引。
+底层使用 Eino 的 OpenAI ChatModel。主 Provider 默认为 `myai/deepseek-v4-pro`，请求 `${MYAI_BASE_URL}/chat/completions`；fallback 默认为 `opencode-go/deepseek-v4-flash`，通过 OpenCode Go 的 OpenAI 兼容接口请求 `https://opencode.ai/zen/go/v1/chat/completions`（Bearer `OPENCODE_API_KEY`）。主 Provider 发生任何错误时都会立即切换 fallback；如果 fallback 也失败，错误中会同时保留两个 Provider 的失败原因。成功摘要及实际使用的 `provider/model` 会写回 SQLite，并由触发器同步更新 FTS 索引。
+
+探测两个 Provider 连通性（不写库）：
+
+```bash
+go run . smoke
+```
 
 ## 测试
 

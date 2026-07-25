@@ -37,7 +37,7 @@ func run(ctx context.Context, args []string) error {
 		usage()
 		return nil
 	}
-	if args[0] != "ingest" && args[0] != "issue" && args[0] != "search" && args[0] != "read" && args[0] != "list" && args[0] != "summarize" {
+	if args[0] != "ingest" && args[0] != "issue" && args[0] != "search" && args[0] != "read" && args[0] != "list" && args[0] != "summarize" && args[0] != "smoke" {
 		usage()
 		return fmt.Errorf("unknown command %q", args[0])
 	}
@@ -58,6 +58,8 @@ func run(ctx context.Context, args []string) error {
 		return runList(ctx, cfg, args[1:])
 	case "summarize":
 		return runSummarize(ctx, cfg, args[1:])
+	case "smoke":
+		return runSmoke(ctx, cfg, args[1:])
 	}
 	return nil
 }
@@ -254,6 +256,47 @@ func removeBlankLines(value string) string {
 	return strings.Join(result, "\n")
 }
 
+func runSmoke(ctx context.Context, cfg config.Config, args []string) error {
+	flags := flag.NewFlagSet("smoke", flag.ContinueOnError)
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return errors.New("usage: magazine2db smoke")
+	}
+	service, err := summary.New(ctx, summary.Config{
+		PrimaryBaseURL:  cfg.Summary.Primary.BaseURL,
+		PrimaryAPIKey:   cfg.Summary.Primary.APIKey,
+		PrimaryModel:    cfg.Summary.Primary.Model,
+		FallbackBaseURL: cfg.Summary.Fallback.BaseURL,
+		FallbackAPIKey:  cfg.Summary.Fallback.APIKey,
+		FallbackModel:   cfg.Summary.Fallback.Model,
+		MaxTokens:       min(cfg.Summary.MaxTokens, 32),
+	})
+	if err != nil {
+		return err
+	}
+	primary, fallback := service.Providers()
+	primaryErr, fallbackErr := service.CheckProviders(ctx)
+	failed := 0
+	if primaryErr != nil {
+		failed++
+		fmt.Fprintf(os.Stderr, "fail: %s: %v\n", primary, primaryErr)
+	} else {
+		fmt.Printf("ok: %s\n", primary)
+	}
+	if fallbackErr != nil {
+		failed++
+		fmt.Fprintf(os.Stderr, "fail: %s: %v\n", fallback, fallbackErr)
+	} else {
+		fmt.Printf("ok: %s\n", fallback)
+	}
+	if failed > 0 {
+		return fmt.Errorf("%d provider(s) failed smoke check", failed)
+	}
+	return nil
+}
+
 func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
 	flags := flag.NewFlagSet("summarize", flag.ContinueOnError)
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
@@ -389,15 +432,16 @@ func validatePublisher(value string) error {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, `magazines2db - ingest and search Economist/Wired issues
+	fmt.Fprintln(os.Stderr, `magazine2db - ingest and search Economist/Wired issues
 
 Usage:
-  magazines2db ingest [--db PATH] <issue-dir>
-  magazines2db issue [--db PATH] [--json]
-  magazines2db search [--db PATH] [--publisher NAME] [--limit N] [--json] <query>
-  magazines2db read [--db PATH] [--json] <stable-id|numeric-id>
-  magazines2db list [--db PATH] [--page N] [--page-size N] [--issue ID] [--json]
-  magazines2db summarize [--db PATH] [--limit N] [--concurrency N]
+  magazine2db ingest [--db PATH] <issue-dir>
+  magazine2db issue [--db PATH] [--json]
+  magazine2db search [--db PATH] [--publisher NAME] [--limit N] [--json] <query>
+  magazine2db read [--db PATH] [--json] <stable-id|numeric-id>
+  magazine2db list [--db PATH] [--page N] [--page-size N] [--issue ID] [--json]
+  magazine2db summarize [--db PATH] [--limit N] [--concurrency N]
+  magazine2db smoke
 
 Configuration is loaded from ./cfg.json, or from cfg.json next to the executable.`)
 }

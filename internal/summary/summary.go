@@ -27,7 +27,7 @@ type Generator interface {
 	Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error)
 }
 
-// Service calls MyAI over OpenAI Chat Completions, then Ollama Cloud if MyAI fails.
+// Service calls MyAI over OpenAI Chat Completions, then OpenCode Go if MyAI fails.
 type Service struct {
 	primary          Generator
 	fallback         Generator
@@ -56,7 +56,7 @@ func New(ctx context.Context, cfg Config) (*Service, error) {
 	}
 	fallbackBaseURL, err := normalizeBaseURL(cfg.FallbackBaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Ollama Cloud base URL: %w", err)
+		return nil, fmt.Errorf("invalid OpenCode Go base URL: %w", err)
 	}
 	temperature := float32(0.2)
 	httpClient := &http.Client{Timeout: 3 * time.Minute}
@@ -67,21 +67,18 @@ func New(ctx context.Context, cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create MyAI Eino OpenAI model: %w", err)
 	}
-	// Use OpenAI-compatible /v1 on ollama.com with Bearer API key.
-	// The native Ollama Go client always signs ollama.com with ~/.ollama/id_ed25519,
-	// which fails on servers that only have OLLAMA_API_KEY.
 	fallback, err := einoopenai.NewChatModel(ctx, &einoopenai.ChatModelConfig{
 		BaseURL: fallbackBaseURL, APIKey: cfg.FallbackAPIKey, Model: cfg.FallbackModel,
 		MaxTokens: &cfg.MaxTokens, Temperature: &temperature, HTTPClient: httpClient,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create Ollama Cloud Eino OpenAI model: %w", err)
+		return nil, fmt.Errorf("create OpenCode Go Eino OpenAI model: %w", err)
 	}
 	return &Service{
 		primary:          primary,
 		fallback:         fallback,
 		primaryProvider:  "myai/" + cfg.PrimaryModel,
-		fallbackProvider: "ollama-cloud/" + cfg.FallbackModel,
+		fallbackProvider: "opencode-go/" + cfg.FallbackModel,
 	}, nil
 }
 
@@ -103,6 +100,41 @@ func (s *Service) Summarize(ctx context.Context, article domain.StoredArticle) (
 		)
 	}
 	return cleanSummary(response.Content), s.fallbackProvider, nil
+}
+
+// Ping probes primary and fallback independently with a tiny chat request.
+// It always tries both providers and joins any failures.
+func (s *Service) Ping(ctx context.Context) error {
+	messages := []*schema.Message{
+		schema.UserMessage("Reply with exactly: ok"),
+	}
+	var errs []error
+	if _, err := s.primary.Generate(ctx, messages); err != nil {
+		errs = append(errs, fmt.Errorf("%s: %w", s.primaryProvider, err))
+	}
+	if _, err := s.fallback.Generate(ctx, messages); err != nil {
+		errs = append(errs, fmt.Errorf("%s: %w", s.fallbackProvider, err))
+	}
+	return errors.Join(errs...)
+}
+
+// CheckProviders probes each provider and returns their individual errors.
+func (s *Service) CheckProviders(ctx context.Context) (primaryErr, fallbackErr error) {
+	messages := []*schema.Message{
+		schema.UserMessage("Reply with exactly: ok"),
+	}
+	if _, err := s.primary.Generate(ctx, messages); err != nil {
+		primaryErr = err
+	}
+	if _, err := s.fallback.Generate(ctx, messages); err != nil {
+		fallbackErr = err
+	}
+	return primaryErr, fallbackErr
+}
+
+// Providers returns the configured primary and fallback provider labels.
+func (s *Service) Providers() (string, string) {
+	return s.primaryProvider, s.fallbackProvider
 }
 
 func normalizeBaseURL(value string) (string, error) {

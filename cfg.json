@@ -8,8 +8,8 @@
       "model": "deepseek-v4-pro"
     },
     "fallback": {
-      "base_url": "https://ollama.com/v1",
-      "model": "deepseek-v4-pro"
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash"
     }
   }
 }
