@@ -178,3 +178,132 @@ func TestNormalizeTitleHandlesSmartPunctuation(t *testing.T) {
 		t.Fatal("smart punctuation should normalize like URL separators")
 	}
 }
+
+func TestParseEconomistJournalLayout(t *testing.T) {
+	text := strings.TrimSpace(`
+July 25th 2026
+
+The world this week
+
+Leaders
+
+优质App推荐
+
+The world this week
+
+Politics
+
+Business
+
+The world this week
+
+Politics
+
+* * *
+
+Jul 23rd 2026
+
+First politics item with enough text to look like a real paragraph of news.
+
+Second politics item.
+
+Leaders
+
+When a president stops pretending that voters count, disaster beckons
+
+Leaders | In praise of hypocrisy
+
+When a president stops pretending that voters count, disaster beckons
+
+Tiny Nicaragua offers a cautionary tale for democrats everywhere
+
+* * *
+
+Jul 23rd 2026
+
+Hypocrisy is the homage that vice pays to virtue, wrote a French moralist in a long opening paragraph.
+
+A second paragraph of the leader body.
+
+Britain | Grey expectations
+
+Tours of British post-war housing are a quiet hit
+
+Perambulations of the anti-Instagram kind
+
+Jul 24th 2026
+
+This header is not followed by a separator, yet the body that follows is still long and real.
+
+Economic & financial indicators | Indicators
+
+Economic data, commodities and markets
+
+Jul 23rd 2026
+
+Obituary
+
+Wally Funk was told women couldn’t be astronauts
+
+Obituary | Per ardua ad astra
+
+Wally Funk was told women couldn’t be astronauts
+
+The aviator who refused to agree died on July 8th, aged 87
+
+* * *
+
+Jul 23rd 2026
+
+When she was told she had to do something, Wally Funk often refused, and this obituary body is long.
+`)
+	articles, err := parseEconomist(text, "2026-07-25")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(articles) != 4 {
+		t.Fatalf("got %d articles, want 4 (indicators without body must be skipped)", len(articles))
+	}
+
+	politics := articles[0]
+	if politics.Section != "The World This Week" || politics.Title != "Politics" {
+		t.Fatalf("bad TWTW metadata: %+v", politics)
+	}
+	if politics.PublishedAt != "2026-07-23" {
+		t.Fatalf("published_at = %q", politics.PublishedAt)
+	}
+	if !strings.Contains(politics.Body, "Second politics item") {
+		t.Fatalf("TWTW body truncated: %q", politics.Body)
+	}
+	if strings.Contains(politics.Body, "disaster beckons") {
+		t.Fatalf("section navigation leaked into TWTW body: %q", politics.Body)
+	}
+
+	leader := articles[1]
+	if leader.Section != "Leaders" || leader.Description != "Tiny Nicaragua offers a cautionary tale for democrats everywhere" {
+		t.Fatalf("bad leader metadata: %+v", leader)
+	}
+	if leader.StableID != "economist:2026-07-25:when-a-president-stops-pretending-that-voters-count-disaster-beckons" {
+		t.Fatalf("stable id = %q", leader.StableID)
+	}
+	if !strings.Contains(leader.Body, "second paragraph") {
+		t.Fatalf("leader body truncated: %q", leader.Body)
+	}
+
+	starless := articles[2]
+	if starless.Title != "Tours of British post-war housing are a quiet hit" || starless.PublishedAt != "2026-07-24" {
+		t.Fatalf("bad starless header metadata: %+v", starless)
+	}
+
+	obituary := articles[3]
+	if obituary.Section != "Obituary" || !strings.Contains(obituary.Body, "often refused") {
+		t.Fatalf("bad obituary: %+v", obituary)
+	}
+}
+
+func TestParseEconomistJournalLayoutRejectsForeignText(t *testing.T) {
+	text := "Just some prose without any Economist journal structure at all.\nNo markers here."
+	if _, err := parseEconomist(text, "2026-07-25"); err == nil {
+		t.Fatal("expected marker error for text without journal structure")
+	}
+}

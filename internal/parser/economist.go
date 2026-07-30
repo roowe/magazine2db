@@ -1,13 +1,14 @@
 package parser
 
 import (
-	"errors"
 	"net/url"
 	"strings"
 	"time"
 
 	"magazine2db/internal/domain"
 )
+
+var economistAdKeywords = []string{"优质App推荐", "英阅阅读器", "Duolingo", "Notability", "点击下载"}
 
 var economistSections = map[string]string{
 	"the-world-this-week": "The World This Week", "leaders": "Leaders", "letters": "Letters",
@@ -42,7 +43,7 @@ func parseEconomist(text, issueDate string) ([]domain.Article, error) {
 		markers = append(markers, source)
 	}
 	if len(markers) == 0 {
-		return nil, errors.New("no Economist article markers found")
+		return parseEconomistJournal(text, issueDate)
 	}
 
 	articles := make([]domain.Article, 0, len(markers))
@@ -51,7 +52,7 @@ func parseEconomist(text, issueDate string) ([]domain.Article, error) {
 		if i > 0 {
 			start = markers[i-1].line + 1
 		}
-		block := cleanLines(lines[start:m.line], []string{"优质App推荐", "英阅阅读器", "Duolingo", "Notability", "点击下载"})
+		block := cleanLines(lines[start:m.line], economistAdKeywords)
 		if len(block) == 0 {
 			continue
 		}
