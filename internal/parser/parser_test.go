@@ -192,6 +192,63 @@ This article was downloaded by calibre from https://www.wired.com/story/the-baby
 	}
 }
 
+func TestParseWiredSkipsArticleWithoutBody(t *testing.T) {
+	text := strings.TrimSpace(`
+Magazine Articles
+Empty article
+Normal article
+
+Empty Writer
+Culture
+Jul 21, 2025 6:00 AM
+Empty article
+Only a description.
+* * *
+This article was downloaded by calibre from https://www.wired.com/story/empty-article/
+
+Normal Writer
+Science
+Jul 22, 2025 6:00 AM
+Normal article
+Another description.
+The article body is available.
+This article was downloaded by calibre from https://www.wired.com/story/normal-article/
+`)
+	articles, err := parseWired(text, "2026-08-02")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(articles) != 1 {
+		t.Fatalf("got %d articles, want 1", len(articles))
+	}
+	if articles[0].Title != "Normal article" {
+		t.Fatalf("title = %q", articles[0].Title)
+	}
+}
+
+func TestParseWiredRejectsIssueWithoutArticleBodies(t *testing.T) {
+	dir := t.TempDir()
+	text := strings.TrimSpace(`
+Magazine Articles
+Empty article
+
+Empty Writer
+Culture
+Jul 21, 2025 6:00 AM
+Empty article
+Only a description.
+* * *
+This article was downloaded by calibre from https://www.wired.com/story/empty-article/
+`)
+	if err := os.WriteFile(filepath.Join(dir, "issue.txt"), []byte(text), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Parse(Input{Path: dir, Publisher: "wired", IssueDate: "2026-08-02"})
+	if err == nil || err.Error() != "no articles found" {
+		t.Fatalf("expected no articles found, got %v", err)
+	}
+}
+
 func TestNormalizeTitleHandlesSmartPunctuation(t *testing.T) {
 	if normalizeTitle("Donald Trump’s least-bad option") != normalizeTitle("donald-trump-s-least-bad-option") {
 		t.Fatal("smart punctuation should normalize like URL separators")

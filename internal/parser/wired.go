@@ -56,10 +56,14 @@ func parseWiredBlock(lines []string, issueDate string, m marker, tocTitles []str
 		if bodyStart < 0 {
 			return domain.Article{}, false
 		}
+		body := strings.TrimSpace(strings.Join(cutWiredFooter(lines[bodyStart:]), "\n"))
+		if body == "" {
+			return domain.Article{}, false
+		}
 		return domain.Article{
 			StableID: "wired:" + issueDate + ":" + stableSlug(m.slug), Slug: stableSlug(m.slug),
 			Title: wiredTitleFromTOC(m.slug, tocTitles), Section: "The Big Story", SourceURL: m.url,
-			Body: strings.TrimSpace(strings.Join(cutWiredFooter(lines[bodyStart:]), "\n")),
+			Body: body,
 		}, true
 	}
 	previous := previousContent(lines, dateIndex, 2)
@@ -79,11 +83,15 @@ func parseWiredBlock(lines []string, issueDate string, m marker, tocTitles []str
 		description = strings.TrimSpace(lines[descriptionIndex])
 		bodyStart = descriptionIndex + 1
 	}
+	body := strings.TrimSpace(strings.Join(cutWiredFooter(lines[bodyStart:]), "\n"))
+	if body == "" {
+		return domain.Article{}, false
+	}
 	return domain.Article{
 		StableID: "wired:" + issueDate + ":" + stableSlug(m.slug), Slug: stableSlug(m.slug),
 		Title: title, Description: description, Author: author, Section: section,
 		PublishedAt: strings.TrimSpace(lines[dateIndex]), SourceURL: m.url,
-		Body: strings.TrimSpace(strings.Join(cutWiredFooter(lines[bodyStart:]), "\n")),
+		Body: body,
 	}, true
 }
 
