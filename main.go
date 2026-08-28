@@ -291,7 +291,7 @@ func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
 	flags := flag.NewFlagSet("summarize", flag.ContinueOnError)
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
 	limit := flags.Int("limit", 0, "maximum unsummarized articles; 0 means all")
-	concurrency := flags.Int("concurrency", cfg.Summary.Concurrency, "parallel model requests")
+	concurrency := flags.Int("concurrency", 4, "parallel model requests")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
