@@ -19,8 +19,8 @@ import (
 
 const e2eArticleID = "economist:2026-06-27:a-practical-quantum-network"
 
-func TestCLIEndToEndWithRealSummaryAPI(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+func TestCLIEndToEndWithRealCodexSummary(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 35*time.Minute)
 	defer cancel()
 
 	projectDir, err := os.Getwd()
@@ -38,7 +38,7 @@ func TestCLIEndToEndWithRealSummaryAPI(t *testing.T) {
 	}
 
 	help := runE2ECommand(t, ctx, runtimeDir, binary, "help")
-	assertContains(t, help, "magazines2db ingest")
+	assertContains(t, help, "magazine2db ingest")
 
 	issuePath := writeE2EIssue(t, runtimeDir)
 	ingested := runE2ECommand(t, ctx, runtimeDir, binary, "ingest", issuePath)
@@ -114,7 +114,7 @@ func TestCLIEndToEndWithRealSummaryAPI(t *testing.T) {
 		t.Fatalf("unexpected list item: %+v", listResult.Items[0])
 	}
 
-	// This is the only real model call in the test.
+	// This is the only real Codex model call in the test.
 	summarized := runE2ECommand(t, ctx, runtimeDir, binary, "summarize", "--limit", "1", "--concurrency", "1")
 	assertContains(t, summarized, "summary complete: 1 succeeded, 0 failed")
 	article := runE2ECommand(t, ctx, runtimeDir, binary, "read", e2eArticleID)
@@ -142,6 +142,11 @@ func prepareRuntime(t *testing.T, projectDir, runtimeDir string) {
 		t.Fatal("cfg.json summary must be an object")
 	}
 	summary["concurrency"] = 1
+	codexBin, err := exec.LookPath("codex")
+	if err != nil {
+		t.Fatalf("locate authenticated Codex CLI: %v", err)
+	}
+	summary["codex_bin"] = codexBin
 	isolatedCfg, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		t.Fatal(err)
@@ -150,13 +155,6 @@ func prepareRuntime(t *testing.T, projectDir, runtimeDir string) {
 		t.Fatal(err)
 	}
 
-	env, err := os.ReadFile(filepath.Join(projectDir, ".env"))
-	if err != nil {
-		t.Fatalf("read project .env with real API keys: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(runtimeDir, ".env"), env, 0o600); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func writeE2EIssue(t *testing.T, runtimeDir string) string {

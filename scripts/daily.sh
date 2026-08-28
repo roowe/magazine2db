@@ -17,7 +17,7 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "[$(date '+%F %T')] another daily job is running, exit."
   exit 0
 fi
-trap 'rm -rf "$LOCK_DIR"' EXIT
+trap '/usr/bin/trash "$LOCK_DIR"' EXIT
 
 cd "$PROJECT_ROOT"
 echo "[$(date '+%F %T')] daily job start"

@@ -20,6 +20,7 @@ if ! [[ "$KEEP" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 mkdir -p "$(dirname "$TARGET_DIR")"
+TARGET_DIR="$(cd -- "$(dirname -- "$TARGET_DIR")" && pwd)/$(basename -- "$TARGET_DIR")"
 
 LOCK_DIR="${TARGET_DIR}.lock"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -28,7 +29,7 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
 fi
 
 TMP_FILE="$(mktemp)"
-trap 'rm -rf "$LOCK_DIR" "$TMP_FILE"' EXIT
+trap '/usr/bin/trash "$LOCK_DIR" "$TMP_FILE"' EXIT
 
 echo "[$(date '+%F %T')] sync start"
 
@@ -97,7 +98,7 @@ cat "$TMP_FILE"
 
 git sparse-checkout init --cone >/dev/null 2>&1 || true
 git sparse-checkout set --stdin < "$TMP_FILE"
-git reset --hard "origin/$BRANCH"
+git merge --ff-only "origin/$BRANCH"
 git sparse-checkout reapply
 
 echo

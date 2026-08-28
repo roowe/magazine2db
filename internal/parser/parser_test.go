@@ -9,20 +9,39 @@ import (
 
 func TestHasSource(t *testing.T) {
 	dir := t.TempDir()
-	if HasSource(dir) {
+	hasSource, err := HasSource(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasSource {
 		t.Fatal("empty directory should have no source")
 	}
 	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if HasSource(dir) {
+	hasSource, err = HasSource(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasSource {
 		t.Fatal("README-only directory should have no source")
 	}
 	if err := os.WriteFile(filepath.Join(dir, "issue.epub"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if !HasSource(dir) {
+	hasSource, err = HasSource(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasSource {
 		t.Fatal("directory with EPUB should have source")
+	}
+}
+
+func TestHasSourceReportsDirectoryErrors(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing")
+	if _, err := HasSource(path); err == nil || !strings.Contains(err.Error(), "read issue directory") {
+		t.Fatalf("expected directory read error, got %v", err)
 	}
 }
 

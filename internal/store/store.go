@@ -257,9 +257,6 @@ func (d *DB) Search(ctx context.Context, query, publisher string, limit int) ([]
 	if query == "" {
 		return nil, errors.New("search query is empty")
 	}
-	if limit < 1 {
-		limit = 20
-	}
 	if len([]rune(query)) < 3 {
 		return d.searchLike(ctx, query, publisher, limit)
 	}

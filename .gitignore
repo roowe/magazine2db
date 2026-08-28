@@ -8,3 +8,4 @@ logs/
 *.db-wal
 .claude/settings.local.json
 .plan.json
+.agent-runs/

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"magazine2db/internal/config"
 	"magazine2db/internal/domain"
@@ -33,11 +34,26 @@ func run(ctx context.Context, args []string) error {
 		usage()
 		return errors.New("missing command")
 	}
-	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+	var handler func(context.Context, config.Config, []string) error
+	switch args[0] {
+	case "help", "-h", "--help":
 		usage()
 		return nil
-	}
-	if args[0] != "ingest" && args[0] != "issue" && args[0] != "search" && args[0] != "read" && args[0] != "list" && args[0] != "summarize" && args[0] != "smoke" {
+	case "ingest":
+		handler = runIngest
+	case "issue":
+		handler = runIssue
+	case "search":
+		handler = runSearch
+	case "read":
+		handler = runRead
+	case "list":
+		handler = runList
+	case "summarize":
+		handler = runSummarize
+	case "smoke":
+		handler = runSmoke
+	default:
 		usage()
 		return fmt.Errorf("unknown command %q", args[0])
 	}
@@ -45,23 +61,7 @@ func run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	switch args[0] {
-	case "ingest":
-		return runIngest(ctx, cfg, args[1:])
-	case "issue":
-		return runIssue(ctx, cfg, args[1:])
-	case "search":
-		return runSearch(ctx, cfg, args[1:])
-	case "read":
-		return runRead(ctx, cfg, args[1:])
-	case "list":
-		return runList(ctx, cfg, args[1:])
-	case "summarize":
-		return runSummarize(ctx, cfg, args[1:])
-	case "smoke":
-		return runSmoke(ctx, cfg, args[1:])
-	}
-	return nil
+	return handler(ctx, cfg, args[1:])
 }
 
 func runIssue(ctx context.Context, cfg config.Config, args []string) error {
@@ -109,7 +109,11 @@ func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
-	if !parser.HasSource(input.Path) {
+	hasSource, err := parser.HasSource(input.Path)
+	if err != nil {
+		return err
+	}
+	if !hasSource {
 		fmt.Printf("skipped: %s %s (no TXT/EPUB in directory)\n", input.Publisher, input.IssueDate)
 		return nil
 	}
@@ -149,6 +153,9 @@ func runSearch(ctx context.Context, cfg config.Config, args []string) error {
 	query := strings.Join(flags.Args(), " ")
 	if strings.TrimSpace(query) == "" {
 		return errors.New("usage: magazines2db search [flags] <query>")
+	}
+	if *limit < 1 {
+		return errors.New("limit must be positive")
 	}
 	if err := validatePublisher(*publisher); err != nil {
 		return err
@@ -265,35 +272,18 @@ func runSmoke(ctx context.Context, cfg config.Config, args []string) error {
 		return errors.New("usage: magazine2db smoke")
 	}
 	service, err := summary.New(ctx, summary.Config{
-		PrimaryBaseURL:  cfg.Summary.Primary.BaseURL,
-		PrimaryAPIKey:   cfg.Summary.Primary.APIKey,
-		PrimaryModel:    cfg.Summary.Primary.Model,
-		FallbackBaseURL: cfg.Summary.Fallback.BaseURL,
-		FallbackAPIKey:  cfg.Summary.Fallback.APIKey,
-		FallbackModel:   cfg.Summary.Fallback.Model,
-		MaxTokens:       min(cfg.Summary.MaxTokens, 32),
+		CodexBin: cfg.Summary.CodexBin,
+		WorkDir:  cfg.WorkDir,
+		Timeout:  time.Duration(cfg.Summary.TimeoutSeconds) * time.Second,
 	})
 	if err != nil {
 		return err
 	}
-	primary, fallback := service.Providers()
-	primaryErr, fallbackErr := service.CheckProviders(ctx)
-	failed := 0
-	if primaryErr != nil {
-		failed++
-		fmt.Fprintf(os.Stderr, "fail: %s: %v\n", primary, primaryErr)
-	} else {
-		fmt.Printf("ok: %s\n", primary)
+	output, err := service.Smoke(ctx)
+	if err != nil {
+		return err
 	}
-	if fallbackErr != nil {
-		failed++
-		fmt.Fprintf(os.Stderr, "fail: %s: %v\n", fallback, fallbackErr)
-	} else {
-		fmt.Printf("ok: %s\n", fallback)
-	}
-	if failed > 0 {
-		return fmt.Errorf("%d provider(s) failed smoke check", failed)
-	}
+	fmt.Printf("ok: %s (%s, run=%s)\n", output.Provider, service.Version(), output.RunDir)
 	return nil
 }
 
@@ -311,6 +301,9 @@ func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
 	if *concurrency < 1 {
 		return errors.New("concurrency must be positive")
 	}
+	if *limit < 0 {
+		return errors.New("limit must not be negative")
+	}
 	db, err := store.Open(*dbPath)
 	if err != nil {
 		return err
@@ -325,22 +318,18 @@ func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
 		return nil
 	}
 	service, err := summary.New(ctx, summary.Config{
-		PrimaryBaseURL:  cfg.Summary.Primary.BaseURL,
-		PrimaryAPIKey:   cfg.Summary.Primary.APIKey,
-		PrimaryModel:    cfg.Summary.Primary.Model,
-		FallbackBaseURL: cfg.Summary.Fallback.BaseURL,
-		FallbackAPIKey:  cfg.Summary.Fallback.APIKey,
-		FallbackModel:   cfg.Summary.Fallback.Model,
-		MaxTokens:       cfg.Summary.MaxTokens,
+		CodexBin: cfg.Summary.CodexBin,
+		WorkDir:  cfg.WorkDir,
+		Timeout:  time.Duration(cfg.Summary.TimeoutSeconds) * time.Second,
 	})
 	if err != nil {
 		return err
 	}
 
 	type result struct {
-		article  domain.StoredArticle
-		provider string
-		err      error
+		article domain.StoredArticle
+		output  summary.Output
+		err     error
 	}
 	jobs := make(chan domain.StoredArticle)
 	results := make(chan result)
@@ -350,16 +339,8 @@ func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
 		go func() {
 			defer workers.Done()
 			for article := range jobs {
-				text, provider, err := service.Summarize(ctx, article)
-				if err == nil && strings.TrimSpace(text) == "" {
-					err = errors.New("model returned an empty summary")
-				}
-				if err == nil {
-					err = db.SaveSummary(ctx, article.ID, text, provider)
-				} else if saveErr := db.SaveSummaryError(ctx, article.ID, err.Error()); saveErr != nil {
-					err = errors.Join(err, saveErr)
-				}
-				results <- result{article: article, provider: provider, err: err}
+				output, err := service.Summarize(ctx, article)
+				results <- result{article: article, output: output, err: err}
 			}
 		}()
 	}
@@ -380,19 +361,36 @@ func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
 
 	succeeded, failed := 0, 0
 	for result := range results {
-		if result.err != nil {
+		err := result.err
+		if err == nil {
+			err = db.SaveSummary(ctx, result.article.ID, result.output.Text, result.output.Provider)
+		}
+		if err != nil {
+			if saveErr := db.SaveSummaryError(ctx, result.article.ID, compactError(err)); saveErr != nil {
+				err = errors.Join(err, saveErr)
+			}
 			failed++
-			fmt.Fprintf(os.Stderr, "failed: [%d] %s: %v\n", result.article.ID, result.article.Title, result.err)
+			fmt.Fprintf(os.Stderr, "failed: [%d] %s: %v\n", result.article.ID, result.article.Title, err)
 			continue
 		}
 		succeeded++
-		fmt.Printf("summarized: [%d] %s (%s)\n", result.article.ID, result.article.Title, result.provider)
+		fmt.Printf("summarized: [%d] %s (%s, run=%s)\n",
+			result.article.ID, result.article.Title, result.output.Provider, result.output.RunDir)
 	}
 	fmt.Printf("summary complete: %d succeeded, %d failed\n", succeeded, failed)
 	if failed > 0 {
 		return fmt.Errorf("%d summary job(s) failed", failed)
 	}
 	return ctx.Err()
+}
+
+func compactError(err error) string {
+	const maxCharacters = 1000
+	characters := []rune(err.Error())
+	if len(characters) > maxCharacters {
+		characters = characters[:maxCharacters]
+	}
+	return string(characters)
 }
 
 func printArticle(article domain.StoredArticle) {

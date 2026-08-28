@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -11,15 +12,14 @@ const testConfig = `{
   "retention": 4,
   "summary": {
     "concurrency": 4,
-    "max_tokens": 4096,
-    "primary": {"model": "deepseek-v4-pro"},
-    "fallback": {"base_url": "https://opencode.ai/zen/go/v1", "model": "deepseek-v4-flash"}
+    "timeout_seconds": 1800,
+    "codex_bin": "codex"
   }
 }`
 
 func TestLoadFromPrefersCurrentDirectory(t *testing.T) {
-	cwd := writeRuntime(t, "cwd", "cwd-primary", "cwd-fallback")
-	execDir := writeRuntime(t, "exec", "exec-primary", "exec-fallback")
+	cwd := writeRuntime(t, "cwd")
+	execDir := writeRuntime(t, "exec")
 
 	cfg, err := LoadFrom(cwd, filepath.Join(execDir, "magazines2db"))
 	if err != nil {
@@ -31,17 +31,14 @@ func TestLoadFromPrefersCurrentDirectory(t *testing.T) {
 	if cfg.Database != filepath.Join(cwd, "test.db") {
 		t.Fatalf("database = %q", cfg.Database)
 	}
-	if cfg.Summary.Primary.APIKey != "cwd-primary" || cfg.Summary.Fallback.APIKey != "cwd-fallback" {
-		t.Fatal("API keys were not loaded from cwd/.env")
-	}
-	if cfg.Summary.Primary.BaseURL != "https://myai.example/v1" {
-		t.Fatalf("MyAI base URL = %q", cfg.Summary.Primary.BaseURL)
+	if cfg.Summary.CodexBin != "codex" || cfg.Summary.TimeoutSeconds != 1800 {
+		t.Fatalf("summary config = %+v", cfg.Summary)
 	}
 }
 
 func TestLoadFromFallsBackToExecutableDirectory(t *testing.T) {
 	cwd := t.TempDir()
-	execDir := writeRuntime(t, "exec", "primary-key", "fallback-key")
+	execDir := writeRuntime(t, "exec")
 
 	cfg, err := LoadFrom(cwd, filepath.Join(execDir, "magazines2db"))
 	if err != nil {
@@ -52,19 +49,24 @@ func TestLoadFromFallsBackToExecutableDirectory(t *testing.T) {
 	}
 }
 
-func writeRuntime(t *testing.T, name, primaryKey, fallbackKey string) string {
+func TestLoadFromRejectsTrailingContent(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "cfg.json"), []byte(testConfig+"\n{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := LoadFrom(dir, filepath.Join(t.TempDir(), "magazine2db"))
+	if err == nil || !strings.Contains(err.Error(), "trailing content") {
+		t.Fatalf("expected trailing content error, got %v", err)
+	}
+}
+
+func writeRuntime(t *testing.T, name string) string {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), name)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "cfg.json"), []byte(testConfig), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	env := "export MYAI_API_KEY=\"" + primaryKey + "\"\n" +
-		"export MYAI_BASE_URL='https://myai.example/v1'\n" +
-		"export OPENCODE_API_KEY='" + fallbackKey + "'\n"
-	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(env), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return dir

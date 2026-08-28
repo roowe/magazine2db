@@ -1,0 +1,22 @@
+goal: 修复 fail-fast 审查发现的边界错误、静默 fallback 和永久删除问题
+phases:
+  - id: 1
+    content: 为目录读取、配置尾部内容和无效 CLI 参数补充回归测试
+    status: done
+  - id: 2
+    content: 实现文件系统、配置、命令分发和参数校验修复
+    status: done
+  - id: 3
+    content: 运行格式化、普通测试、race、vet 和安全扫描
+    status: done
+  - id: 4
+    content: 完成计划总结并归档
+    status: done
+notes:
+  - content: 删除操作必须调用 macOS /usr/bin/trash 并使用绝对路径
+  - content: 用户输入只在 CLI 边界验证，内部存储层依赖正数 limit 不变量
+  - content: 使用 /private/tmp 虚拟 EPUB 验证转换失败后半成品已进入 macOS 废纸篓，未触碰真实文件
+errors:
+  - content: 负数 limit 测试同时使用了零并发配置，先命中 concurrency 校验；已为夹具设置有效并发值
+    resolved: true
+summary: 已修复 6 项 fail-fast 问题：文件系统读取错误不再被当成无源目录，转换半成品通过 macOS /usr/bin/trash 回收，配置拒绝尾部 JSON，命令分发移除静默成功路径，搜索和摘要 limit 在 CLI 边界严格校验，存储层移除默认值 fallback；38 项普通与 race 测试、go vet、diff 检查和虚拟 EPUB 安全验证均通过。

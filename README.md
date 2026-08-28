@@ -4,12 +4,15 @@
 
 杂志内容来源：[hehonghui/awesome-english-ebooks](https://github.com/hehonghui/awesome-english-ebooks.git)。
 
+> [!IMPORTANT]
+> **本项目当前仅在 macOS 上开发和验证。** 本文记录的构建、同步、Codex 摘要、定时任务和 E2E 流程均以 macOS 为准；Linux 与 Windows 尚未测试，不保证可以正常运行。项目脚本还直接依赖 macOS 的 `/usr/bin/trash`。
+
 ## 环境要求
 
 - Go 1.25 或更高版本：构建和运行程序。
 - Git：执行杂志同步脚本。
 - Calibre 的 `ebook-convert`：仅当一期杂志没有 TXT、需要从 EPUB 转换时使用。
-- Anthropic Messages 协议兼容的模型服务：仅在生成中文摘要时需要，通过 `cfg.json` 和 `.env` 配置。
+- 已登录的 Codex CLI：仅在生成中文摘要时需要；模型固定为 `gpt-5.6-luna`，reasoning effort 固定为 `max`。
 
 SQLite 和 FTS5 由 Go 依赖内置，无需单独安装 SQLite。
 
@@ -40,7 +43,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazine2db .
 1. 当前目录中存在 `cfg.json` 时，使用当前目录（开发模式）。
 2. 否则查找 `magazine2db` 可执行文件同目录的 `cfg.json`（发布模式）。
 
-确定工作目录后，程序读取同级 `.env` 中的 API Key。`cfg.json` 里的数据库相对路径也以该目录为基准，因此可以从任意目录启动发布后的程序。
+`cfg.json` 里的数据库相对路径以工作目录为基准，因此可以从任意目录启动发布后的程序。Codex 使用当前系统用户已有的 CLI 登录状态，不读取项目 `.env`。
 
 发布目录结构如下：
 
@@ -48,17 +51,24 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazine2db .
 runtime/
 ├── magazine2db
 ├── cfg.json
-├── .env
 └── magazines.db
 ```
 
-`cfg.json` 保存数据库、保留期数、并发数、最大 token、模型和 OpenCode Go URL；`.env` 保存 MyAI URL 与两个 Provider 的密钥：
+`cfg.json` 保存数据库、保留期数和 Codex 摘要执行参数：
 
-```dotenv
-MYAI_API_KEY=...
-MYAI_BASE_URL=https://example.com/v1
-OPENCODE_API_KEY=...
+```json
+{
+  "database": "magazines.db",
+  "retention": 4,
+  "summary": {
+    "concurrency": 4,
+    "timeout_seconds": 1800,
+    "codex_bin": "codex"
+  }
+}
 ```
+
+`codex_bin` 可以是 PATH 中的命令，也可以是绝对路径。使用 npm/NVM 安装 Codex 时，定时任务的 PATH 还必须包含同目录下的 `node`。
 
 `--db` 仍可临时覆盖 `cfg.json` 中的数据库路径。
 
@@ -88,11 +98,11 @@ mkdir -p logs
 然后执行 `crontab -e`，加入：
 
 ```cron
-PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Applications/calibre.app/Contents/MacOS
+PATH=/path/to/codex-and-node/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Applications/calibre.app/Contents/MacOS
 20 6 * * * cd /path/to/magazine2db && ./scripts/daily.sh >> logs/daily.log 2>&1
 ```
 
-每天 6:20 运行。脚本带有互斥锁，重复触发会直接退出；已有期刊由 `ingest` 自动跳过，只为尚无摘要的文章调用模型。可以通过 `magazine2db_BIN` 覆盖二进制路径，并继续使用同步脚本支持的 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量。
+将 `/path/to/codex-and-node/bin` 替换为 `dirname "$(command -v codex)"` 的实际输出。每天 6:20 运行。脚本带有互斥锁，重复触发会直接退出；已有期刊由 `ingest` 自动跳过，只为尚无摘要的文章调用模型。可以通过 `MAGAZINE2DB_BIN` 覆盖二进制路径，并继续使用同步脚本支持的 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量。锁目录退出时通过 macOS `/usr/bin/trash` 移入废纸篓，不永久删除。
 
 ## 入库
 
@@ -148,9 +158,11 @@ go run . summarize
 go run . summarize --limit 20 --concurrency 10
 ```
 
-底层使用 Eino 的 OpenAI ChatModel。主 Provider 默认为 `myai/deepseek-v4-pro`，请求 `${MYAI_BASE_URL}/chat/completions`；fallback 默认为 `opencode-go/deepseek-v4-flash`，通过 OpenCode Go 的 OpenAI 兼容接口请求 `https://opencode.ai/zen/go/v1/chat/completions`（Bearer `OPENCODE_API_KEY`）。主 Provider 发生任何错误时都会立即切换 fallback；如果 fallback 也失败，错误中会同时保留两个 Provider 的失败原因。成功摘要及实际使用的 `provider/model` 会写回 SQLite，并由触发器同步更新 FTS 索引。
+每篇文章启动一次非交互式 `codex exec`，固定使用 `gpt-5.6-luna` + `max`。运行参数包含 `--ephemeral`、`--sandbox read-only`、`--output-schema` 和 `-o`；文章正文只写入隔离 workspace，不放进命令行。应用会再次验证最终 JSON：摘要必须是单段中文、不超过 300 个 Unicode 字符，且不能包含 Markdown 或“摘要：”前缀。
 
-探测两个 Provider 连通性（不写库）：
+每次调用的输入、命令、stdout/stderr、最终响应和运行记录保存在 `.agent-runs/summary/`，不会自动永久删除。成功摘要及 `codex/gpt-5.6-luna@max` 会写回 SQLite，并由触发器同步更新 FTS 索引。Codex 启动失败、非零退出、超时或结果违规都会保留 artifacts 并写入 `summary_error`；不会切换模型，也不会内部重试。
+
+执行一次合成文章摘要，验证 Codex CLI、登录状态、模型、网络和结构化输出（不写库）：
 
 ```bash
 go run . smoke
@@ -164,10 +176,10 @@ go run . smoke
 go test ./...
 ```
 
-完整 E2E 会构建并运行真实二进制，覆盖 `help`、`ingest`、重复入库、`search`、两种 ID 的 `read` 和 `summarize`。测试使用项目目录的 `cfg.json` 与 `.env`，只处理一篇文章并发起一次真实摘要请求：
+完整 E2E 会构建并运行真实二进制，覆盖 `help`、`ingest`、重复入库、`search`、两种 ID 的 `read` 和 `summarize`。测试要求当前用户已登录 Codex CLI，只处理一篇合成文章并发起一次真实摘要请求：
 
 ```bash
-go test -tags=e2e -run TestCLIEndToEndWithRealSummaryAPI -v .
+go test -tags=e2e -run TestCLIEndToEndWithRealCodexSummary -v .
 ```
 
 ## 许可证与内容归属

@@ -4,23 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 )
 
-type Provider struct {
-	BaseURL string `json:"base_url"`
-	Model   string `json:"model"`
-	APIKey  string `json:"-"`
-}
-
 type Summary struct {
-	Concurrency int      `json:"concurrency"`
-	MaxTokens   int      `json:"max_tokens"`
-	Primary     Provider `json:"primary"`
-	Fallback    Provider `json:"fallback"`
+	CodexBin       string `json:"codex_bin"`
+	TimeoutSeconds int    `json:"timeout_seconds"`
+	Concurrency    int    `json:"concurrency"`
 }
 
 type Config struct {
@@ -29,8 +21,6 @@ type Config struct {
 	Retention int     `json:"retention"`
 	Summary   Summary `json:"summary"`
 }
-
-var providerEnvPattern = regexp.MustCompile(`(?m)\b(MYAI_API_KEY|MYAI_BASE_URL|OPENCODE_API_KEY)\s*=\s*("[^"]*"|'[^']*'|[^\s#]+)`)
 
 func Load() (Config, error) {
 	cwd, err := os.Getwd()
@@ -76,44 +66,17 @@ func LoadFrom(cwd, executable string) (Config, error) {
 	if err := decoder.Decode(&cfg); err != nil {
 		return Config{}, fmt.Errorf("decode %s: %w", cfgPath, err)
 	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return Config{}, fmt.Errorf("decode %s: trailing content", cfgPath)
+	}
 	cfg.WorkDir = filepath.Dir(cfgPath)
 	if !filepath.IsAbs(cfg.Database) {
 		cfg.Database = filepath.Join(cfg.WorkDir, cfg.Database)
-	}
-	if err := loadProviderEnv(filepath.Join(cfg.WorkDir, ".env"), &cfg); err != nil {
-		return Config{}, err
 	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, fmt.Errorf("validate %s: %w", cfgPath, err)
 	}
 	return cfg, nil
-}
-
-func loadProviderEnv(path string, cfg *Config) error {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("read %s: %w", path, err)
-	}
-	values := make(map[string]string)
-	for _, match := range providerEnvPattern.FindAllStringSubmatch(string(content), -1) {
-		value := match[2]
-		if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') {
-			if value[0] == '"' {
-				unquoted, err := strconv.Unquote(value)
-				if err != nil {
-					return fmt.Errorf("parse %s in %s: %w", match[1], path, err)
-				}
-				value = unquoted
-			} else {
-				value = value[1 : len(value)-1]
-			}
-		}
-		values[match[1]] = value
-	}
-	cfg.Summary.Primary.BaseURL = values["MYAI_BASE_URL"]
-	cfg.Summary.Primary.APIKey = values["MYAI_API_KEY"]
-	cfg.Summary.Fallback.APIKey = values["OPENCODE_API_KEY"]
-	return nil
 }
 
 func (cfg Config) validate() error {
@@ -126,14 +89,11 @@ func (cfg Config) validate() error {
 	if cfg.Summary.Concurrency < 1 {
 		return errors.New("summary.concurrency must be positive")
 	}
-	if cfg.Summary.MaxTokens < 1 {
-		return errors.New("summary.max_tokens must be positive")
+	if cfg.Summary.TimeoutSeconds < 1 {
+		return errors.New("summary.timeout_seconds must be positive")
 	}
-	if cfg.Summary.Primary.BaseURL == "" || cfg.Summary.Primary.Model == "" || cfg.Summary.Primary.APIKey == "" {
-		return errors.New("summary primary model, MYAI_BASE_URL and MYAI_API_KEY are required")
-	}
-	if cfg.Summary.Fallback.BaseURL == "" || cfg.Summary.Fallback.Model == "" || cfg.Summary.Fallback.APIKey == "" {
-		return errors.New("summary fallback base_url, model and OPENCODE_API_KEY are required")
+	if cfg.Summary.CodexBin == "" {
+		return errors.New("summary.codex_bin is required")
 	}
 	return nil
 }

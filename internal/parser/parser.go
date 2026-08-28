@@ -29,10 +29,10 @@ type Input struct {
 }
 
 // HasSource reports whether an issue directory contains a TXT or EPUB to parse.
-func HasSource(path string) bool {
+func HasSource(path string) (bool, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return false
+		return false, fmt.Errorf("read issue directory: %w", err)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -40,10 +40,10 @@ func HasSource(path string) bool {
 		}
 		switch strings.ToLower(filepath.Ext(entry.Name())) {
 		case ".txt", ".epub":
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // InspectInput detects publisher and issue date without converting the source.
@@ -146,10 +146,30 @@ func convertEPUB(epub string) (string, error) {
 	out := strings.TrimSuffix(epub, filepath.Ext(epub)) + ".txt"
 	cmd := exec.Command("ebook-convert", epub, out)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		_ = os.Remove(out) // 清理转换失败留下的半成品
-		return "", fmt.Errorf("ebook-convert failed: %w: %s", err, strings.TrimSpace(string(output)))
+		conversionErr := fmt.Errorf("ebook-convert failed: %w: %s", err, strings.TrimSpace(string(output)))
+		if trashErr := trashIfExists(out); trashErr != nil {
+			return "", errors.Join(conversionErr, trashErr)
+		}
+		return "", conversionErr
 	}
 	return out, nil
+}
+
+func trashIfExists(path string) error {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("resolve partial conversion output: %w", err)
+	}
+	if _, err := os.Lstat(absolutePath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("inspect partial conversion output %s: %w", absolutePath, err)
+	}
+	if output, err := exec.Command("/usr/bin/trash", absolutePath).CombinedOutput(); err != nil {
+		return fmt.Errorf("move partial conversion output %s to Trash: %w: %s", absolutePath, err, strings.TrimSpace(string(output)))
+	}
+	return nil
 }
 
 type marker struct {

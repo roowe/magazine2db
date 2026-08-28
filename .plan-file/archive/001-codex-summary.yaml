@@ -1,0 +1,52 @@
+goal: 使用 Codex CLI 为 magazine2db 生成中文摘要，固定使用 gpt-5.6-luna 与 max reasoning，并保留可审计的单篇运行记录
+phases:
+  - id: 1
+    content: 调研 magazine2db 现有摘要调用链，并追踪 bench.py、news2db 与 paper2db 的 Codex Agent 实现
+    status: done
+  - id: 2
+    content: 收敛配置契约：以 codex_bin、timeout_seconds、concurrency 替换 HTTP Provider 与 max_tokens，模型和 reasoning 固定为 gpt-5.6-luna 与 max
+    status: done
+  - id: 3
+    content: 在 internal/summary 实现 Codex runner：启动时 preflight 版本与模型能力，每篇创建隔离 workspace，使用 read-only sandbox、结构化输出、超时终止和审计记录
+    status: done
+  - id: 4
+    content: 实现 magazine 摘要 prompt、JSON Schema 与结果校验，拒绝空输出、超过 300 个 Unicode 字符、非中文、多段、Markdown、摘要前缀和未知 JSON 字段
+    status: done
+  - id: 5
+    content: 接入 summarize 与 smoke：Agent 调用可并发、SQLite 写回主流程串行，成功记录 codex/gpt-5.6-luna@max，失败保留 artifacts 并写 summary_error，不 fallback、不内部重试
+    status: done
+  - id: 6
+    content: 重写配置、summary 与 CLI 测试，使用合成 Fake Codex 覆盖 preflight、成功、非零退出、超时、无效输出、成功失败混合批次和 prompt 脱敏
+    status: done
+  - id: 7
+    content: 更新 cfg.json、README、E2E 与定时任务说明，移除 Eino 和 API Key 依赖，忽略 .agent-runs，并按安全约束将 daily.sh 的锁目录清理改为 /usr/bin/trash 绝对路径
+    status: done
+  - id: 8
+    content: 执行 gofmt、go mod tidy、go test ./... 与静态检查，再用 limit=1、concurrency=1 做真实 smoke，最后验证默认 concurrency=4 的小批量摘要与 SQLite 结果
+    status: done
+notes:
+  - content: 参考 bench.py 的核心命令是 codex exec --ephemeral --model <model> -c model_reasoning_effort=<reasoning> -o <final>；本机 codex-cli 0.146.0 已列出 gpt-5.6-luna 且支持 max。
+  - content: runner 采用 paper2db 模式：preflight 执行 codex --version 与 codex debug models；每次运行保存 metadata.json、article.txt、prompt.md、output-schema.json、command.json、stdout.jsonl、stderr.log、final.json 和 run.json。
+  - content: 摘要契约采用 news2db 与 magazine2db 现有语义：文章内容是不可信数据，不得联网、搜索、调用子 Agent、写文件或读取 workspace 外内容；最终只生成一段不超过 300 字的中文事实摘要。
+  - content: Codex 命令固定包含 --ephemeral、--sandbox read-only、--skip-git-repo-check、--color never、--json、--output-schema、-o；短常量 prompt 可放命令参数，正文只写入隔离 workspace，避免命令行长度和正文泄露到 command.json。
+  - content: artifacts 根目录使用 cfg.json 所在工作目录下的 .agent-runs/summary；使用 Unix 时间戳纳秒、进程号和文章 ID 生成唯一目录，TZ 固定 Asia/Shanghai，运行记录不自动永久删除。
+  - content: 现有数据库 schema、summary_zh 为空即待处理、summary_error 重试语义与 summary_provider 字段保持不变；本次不引入 paper2db/news2db 状态机或时间戳迁移。
+  - content: 现有 MyAI/OpenCode Go 双 Provider 被 Codex runner 完整替换，不保留静默 fallback；现有本地 .env 文件不删除，只是不再作为程序启动前置条件。
+  - content: 默认单篇超时采用 bench.py 与 paper2db 的 1800 秒，默认并发保留当前值 4；真实验收先以 concurrency=1 运行，确认账号限流与时延后再验证 4 并发。
+  - content: 当前 codex 位于 /Users/luoliwei/.nvm/versions/node/v24.14.0/bin/codex，而 README 的 cron PATH 不包含该目录；实施时必须支持 codex_bin 绝对路径并在 smoke 中 fail fast，避免定时任务静默失败。
+  - content: 输出写库前必须由应用层再次校验，不能只依赖 prompt 或 JSON Schema；错误信息应限制长度并包含可审计的 run artifacts 绝对路径。
+  - content: 安全扫描发现 daily 调用的 sync_magazines.sh 仍含 rm -rf 与 git reset --hard；已改为 /usr/bin/trash 和 git merge --ff-only，并将 TARGET_DIR 规范化为绝对路径。
+errors:
+  - content: Fake Codex 成功分支写出 final.json 后未显式退出，落入脚本末尾 exit 9；已补充 exit 0。
+    resolved: true
+  - content: Go JSON 默认把 command.json 的 <PROMPT> 转义为 Unicode 序列，影响审计可读性；已在统一 JSON writer 中关闭 HTML 转义。
+    resolved: true
+  - content: 新增批处理测试后遗留未使用的 time import，Go 编译按 fail-fast 直接失败；已移除未使用 import。
+    resolved: true
+  - content: go mod tidy 首次运行因 sandbox 无权写入用户 Go 缓存而失败；获批后在沙箱外重跑成功。
+    resolved: true
+  - content: 真实 E2E 在模型调用前发现帮助文本测试仍断言旧命令名 magazines2db；CLI 实际契约为 magazine2db，已修正测试期望。
+    resolved: true
+  - content: 真实 smoke 首次在 workspace sandbox 内因 ~/.codex/state_5.sqlite 只读失败；按授权在正常本机环境重跑后成功。
+    resolved: true
+summary: 已将 magazine2db 摘要层从 Eino 双 Provider 改为固定 gpt-5.6-luna/max 的 Codex CLI Agent，完成 preflight、隔离审计、结构化输出、严格校验、并发调用与串行写库；普通测试、race、vet、构建、真实 smoke 和真实单篇 E2E 均通过，并清除了 daily 工作流中的永久删除与毁灭性 Git 命令。
