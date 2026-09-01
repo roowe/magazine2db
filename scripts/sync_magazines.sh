@@ -52,7 +52,12 @@ fi
 cd "$TARGET_DIR"
 
 git remote set-url origin "$REPO_URL"
-git fetch --depth=1 --prune origin "$BRANCH"
+git fetch --prune origin "$BRANCH"
+
+if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]] \
+  && ! git merge-base --is-ancestor HEAD "origin/$BRANCH"; then
+  git fetch --unshallow --prune origin "$BRANCH"
+fi
 
 latest_paths_for_category() {
   local category="$1"
