@@ -113,13 +113,17 @@ func TestParseSummaryEnforcesContract(t *testing.T) {
 	if err != nil || valid != "公司收入增长，核心需求改善。" {
 		t.Fatalf("valid summary = %q, %v", valid, err)
 	}
+	longSummary := strings.Repeat("中", 301)
+	valid, err = parseSummary([]byte("{\"summary\":\"" + longSummary + "\"}"))
+	if err != nil || valid != longSummary {
+		t.Fatalf("long summary = %q, %v", valid, err)
+	}
 	for name, value := range map[string][]byte{
 		"unknown field": []byte("{\"summary\":\"公司增长。\",\"source\":\"model\"}"),
 		"empty":         []byte("{\"summary\":\"\"}"),
 		"English":       []byte("{\"summary\":\"English only\"}"),
 		"prefix":        []byte("{\"summary\":\"摘要：公司增长。\"}"),
 		"multiline":     []byte("{\"summary\":\"公司增长。\\n需求改善。\"}"),
-		"too long":      []byte("{\"summary\":\"" + strings.Repeat("中", 301) + "\"}"),
 		"Markdown":      []byte("{\"summary\":\"# 公司增长。\"}"),
 		"trailing":      []byte("{\"summary\":\"公司增长。\"} {}"),
 	} {

@@ -158,7 +158,7 @@ go run . summarize
 go run . summarize --limit 20 --concurrency 10
 ```
 
-每篇文章启动一次非交互式 `codex exec`，固定使用 `gpt-5.6-luna` + `max`。运行参数包含 `--ephemeral`、`--sandbox read-only`、`--output-schema` 和 `-o`；文章正文只写入隔离 workspace，不放进命令行。应用会再次验证最终 JSON：摘要必须是单段中文、不超过 300 个 Unicode 字符，且不能包含 Markdown 或“摘要：”前缀。
+每篇文章启动一次非交互式 `codex exec`，固定使用 `gpt-5.6-luna` + `max`。运行参数包含 `--ephemeral`、`--sandbox read-only`、`--output-schema` 和 `-o`；文章正文只写入隔离 workspace，不放进命令行。提示词要求摘要尽量不超过 300 个 Unicode 字符；应用会再次验证最终 JSON：摘要必须是单段中文，且不能包含 Markdown 或“摘要：”前缀。
 
 每次调用的输入、命令、stdout/stderr、最终响应和运行记录保存在 `.agent-runs/summary/`，不会自动永久删除。成功摘要及 `codex/gpt-5.6-luna@max` 会写回 SQLite，并由触发器同步更新 FTS 索引。Codex 启动失败、非零退出、超时或结果违规都会保留 artifacts 并写入 `summary_error`；不会切换模型，也不会内部重试。
 
