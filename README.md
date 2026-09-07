@@ -163,7 +163,7 @@ PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
 
 ## 数据库版本与重建
 
-当前数据库版本为 `user_version = 4`。程序**不兼容旧库、也不执行任何历史迁移**：打开非当前版本的数据库会明确报错。需要升级时，删除（或移走）旧的 `magazines.db`，再从原始 EPUB 重新执行 `ingest` 即可。
+当前数据库版本为 `user_version = 5`。程序**不兼容旧库、也不执行任何历史迁移**：打开非当前版本的数据库会明确报错。需要升级时，删除（或移走）旧的 `magazines.db`，再从原始 EPUB 重新执行 `ingest` 即可。
 
 重建会重新生成期刊和文章 ID、正文统一为 Markdown；没有对应 EPUB 的历史记录无法重新导入，下游应重新获取期刊与文章列表。
 

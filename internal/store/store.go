@@ -33,10 +33,7 @@ CREATE TABLE IF NOT EXISTS articles (
     issue_date       TEXT NOT NULL,
     slug             TEXT NOT NULL,
     title            TEXT NOT NULL,
-    description      TEXT NOT NULL DEFAULT '',
-    author           TEXT NOT NULL DEFAULT '',
     section          TEXT NOT NULL DEFAULT '',
-    published_at     TEXT NOT NULL DEFAULT '',
     source_url       TEXT NOT NULL,
     body             TEXT NOT NULL,
     body_xhtml       TEXT NOT NULL DEFAULT '',
@@ -88,7 +85,7 @@ func initialize(db *sql.DB) error {
 	if err := tx.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version == 4 {
+	if version == 5 {
 		return tx.Commit()
 	}
 	var populated bool
@@ -101,7 +98,7 @@ func initialize(db *sql.DB) error {
 	if _, err := tx.Exec(schema); err != nil {
 		return err
 	}
-	if _, err := tx.Exec("PRAGMA user_version = 4"); err != nil {
+	if _, err := tx.Exec("PRAGMA user_version = 5"); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -188,12 +185,12 @@ func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int, forc
 
 	for _, article := range issue.Articles {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO articles
-(stable_id, issue_id, publisher, issue_date, slug, title, description, author,
- section, published_at, source_url, body, body_xhtml, source_href)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+(stable_id, issue_id, publisher, issue_date, slug, title,
+ section, source_url, body, body_xhtml, source_href)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			article.StableID, issueID, issue.Publisher, issue.IssueDate, article.Slug,
-			article.Title, article.Description, article.Author, article.Section,
-			article.PublishedAt, article.SourceURL, article.Body, article.BodyXHTML, article.SourceHref,
+			article.Title, article.Section,
+			article.SourceURL, article.Body, article.BodyXHTML, article.SourceHref,
 		); err != nil {
 			return fmt.Errorf("insert article %s: %w", article.StableID, err)
 		}
@@ -217,13 +214,13 @@ func (d *DB) Read(ctx context.Context, identifier string) (domain.StoredArticle,
 	if id, err := strconv.ParseInt(identifier, 10, 64); err == nil {
 		condition, value = "id = ?", id
 	}
-	query := `SELECT id, stable_id, publisher, issue_date, slug, title, description, author,
-section, published_at, source_url, body, body_xhtml, source_href FROM articles WHERE ` + condition
+	query := `SELECT id, stable_id, publisher, issue_date, slug, title,
+section, source_url, body, body_xhtml, source_href FROM articles WHERE ` + condition
 	var article domain.StoredArticle
 	err := d.db.QueryRowContext(ctx, query, value).Scan(
 		&article.ID, &article.StableID, &article.Publisher, &article.IssueDate,
-		&article.Slug, &article.Title, &article.Description, &article.Author,
-		&article.Section, &article.PublishedAt, &article.SourceURL, &article.Body, &article.BodyXHTML, &article.SourceHref,
+		&article.Slug, &article.Title,
+		&article.Section, &article.SourceURL, &article.Body, &article.BodyXHTML, &article.SourceHref,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.StoredArticle{}, fmt.Errorf("article %q not found", identifier)

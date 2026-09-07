@@ -16,7 +16,7 @@ func TestForceReplacesIssueAndRollsBackOnFailure(t *testing.T) {
 	}
 	defer db.Close()
 	issue := domain.Issue{Publisher: "wired", IssueDate: "2026-09-02", SourcePath: "/old", Articles: []domain.Article{
-		{StableID: "wired:2026-09-02:first", Slug: "first", Title: "First", Body: "Old body", Author: "Old author"},
+		{StableID: "wired:2026-09-02:first", Slug: "first", Title: "First", Body: "Old body"},
 		{StableID: "wired:2026-09-02:second", Slug: "second", Title: "Second", Body: "Second body"},
 	}}
 	if err := db.InsertIssue(ctx, issue, 4, false); err != nil {
@@ -25,7 +25,7 @@ func TestForceReplacesIssueAndRollsBackOnFailure(t *testing.T) {
 	issue.SourcePath = "/new"
 	issue.Articles = []domain.Article{{
 		StableID: "wired:2026-09-02:replacement", Slug: "replacement", Title: "Replacement",
-		Body: "# Fresh evidence", BodyXHTML: "<h1>Fresh evidence</h1>", SourceHref: "replacement.xhtml", Author: "New author",
+		Body: "# Fresh evidence", BodyXHTML: "<h1>Fresh evidence</h1>", SourceHref: "replacement.xhtml",
 	}}
 	if err := db.InsertIssue(ctx, issue, 4, true); err != nil {
 		t.Fatal(err)
@@ -36,7 +36,7 @@ func TestForceReplacesIssueAndRollsBackOnFailure(t *testing.T) {
 		}
 	}
 	article, err := db.Read(ctx, issue.Articles[0].StableID)
-	if err != nil || article.Title != "Replacement" || article.Author != "New author" || article.Body != "# Fresh evidence" || article.BodyXHTML != "<h1>Fresh evidence</h1>" || article.SourceHref != "replacement.xhtml" {
+	if err != nil || article.Title != "Replacement" || article.Body != "# Fresh evidence" || article.BodyXHTML != "<h1>Fresh evidence</h1>" || article.SourceHref != "replacement.xhtml" {
 		t.Fatalf("replacement article: %+v, %v", article, err)
 	}
 	after, err := db.ListIssues(ctx)

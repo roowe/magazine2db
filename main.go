@@ -149,7 +149,7 @@ func runRead(ctx context.Context, defaultDB string, args []string) error {
 		return err
 	}
 	if *xhtml && article.BodyXHTML == "" {
-		return errors.New("original XHTML unavailable; refresh this issue from EPUB")
+		return errors.New("original XHTML unavailable; re-ingest with --force")
 	}
 	if *jsonOutput {
 		if !*xhtml {
@@ -220,19 +220,10 @@ func printArticle(article domain.StoredArticle) {
 	fmt.Printf("# %s\n\n", article.Title)
 	fmt.Printf("ID: %d\nStable ID: %s\nPublisher: %s\nIssue: %s\n",
 		article.ID, article.StableID, article.Publisher, article.IssueDate)
-	if article.Author != "" {
-		fmt.Printf("Author: %s\n", article.Author)
-	}
 	if article.Section != "" {
 		fmt.Printf("Section: %s\n", article.Section)
 	}
-	if article.PublishedAt != "" {
-		fmt.Printf("Published: %s\n", article.PublishedAt)
-	}
 	fmt.Printf("Source: %s\n", article.SourceURL)
-	if article.Description != "" {
-		fmt.Printf("\n%s\n", article.Description)
-	}
 	fmt.Printf("\n## Article\n\n%s\n", article.Body)
 }
 
