@@ -246,7 +246,7 @@ func (d *DB) ListArticles(ctx context.Context, page, pageSize int, issueID int64
 	if err := d.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM articles"+filter, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count articles: %w", err)
 	}
-	query := "SELECT id, title, substr(body, 1, 200) FROM articles" + filter + " ORDER BY issue_date DESC, id LIMIT ? OFFSET ?"
+	query := "SELECT id, title, substr(body, 1, 1000) FROM articles" + filter + " ORDER BY issue_date DESC, id LIMIT ? OFFSET ?"
 	args = append(args, pageSize, (page-1)*pageSize)
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {

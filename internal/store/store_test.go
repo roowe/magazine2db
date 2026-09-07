@@ -89,7 +89,7 @@ func TestListArticlesPaginatesOriginalExcerpts(t *testing.T) {
 	}
 	defer db.Close()
 
-	longBody := strings.Repeat("界", 220)
+	longBody := strings.Repeat("界", 1020)
 	issue := domain.Issue{
 		Publisher: "wired", IssueDate: "2026-06-02", SourcePath: "/fixture",
 		Articles: []domain.Article{
@@ -116,8 +116,8 @@ func TestListArticlesPaginatesOriginalExcerpts(t *testing.T) {
 	if items[0].Excerpt != "first body" {
 		t.Fatalf("unexpected first excerpt: %q", items[0].Excerpt)
 	}
-	if got := len([]rune(items[1].Excerpt)); got != 200 {
-		t.Fatalf("fallback body length = %d, want 200", got)
+	if got := len([]rune(items[1].Excerpt)); got != 1000 {
+		t.Fatalf("excerpt length = %d, want 1000", got)
 	}
 	secondPage, _, err := db.ListArticles(ctx, 2, 2, issues[0].ID)
 	if err != nil || len(secondPage) != 1 {

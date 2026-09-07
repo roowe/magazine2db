@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
-	"magazine2db/internal/config"
 	"magazine2db/internal/domain"
 	"magazine2db/internal/parser"
 	"magazine2db/internal/store"
@@ -31,7 +31,7 @@ func run(ctx context.Context, args []string) error {
 		usage()
 		return errors.New("missing command")
 	}
-	var handler func(context.Context, config.Config, []string) error
+	var handler func(context.Context, string, []string) error
 	switch args[0] {
 	case "help", "-h", "--help":
 		usage()
@@ -48,22 +48,22 @@ func run(ctx context.Context, args []string) error {
 		usage()
 		return fmt.Errorf("unknown command %q", args[0])
 	}
-	cfg, err := config.Load()
+	executable, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	return handler(ctx, cfg, args[1:])
+	return handler(ctx, filepath.Join(filepath.Dir(executable), "magazines.db"), args[1:])
 }
 
-func runIssue(ctx context.Context, cfg config.Config, args []string) error {
+func runIssue(ctx context.Context, defaultDB string, args []string) error {
 	flags := flag.NewFlagSet("issue", flag.ContinueOnError)
-	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
+	dbPath := flags.String("db", defaultDB, "shared SQLite database path")
 	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("usage: magazines2db issue [flags]")
+		return errors.New("usage: magazine2db issue [flags]")
 	}
 	db, err := store.Open(*dbPath)
 	if err != nil {
@@ -89,16 +89,16 @@ func runIssue(ctx context.Context, cfg config.Config, args []string) error {
 // runIngest 先从目录路径识别刊物和期号，再查数据库决定是否需要解析。
 // 已存在且未指定 --force 时直接跳过，无需查找或读取 EPUB。
 // 需要导入时才定位并解析 EPUB：新期刊新增，强制导入时整期删除后重新入库；缺少 EPUB 则报错。
-func runIngest(ctx context.Context, cfg config.Config, args []string) error {
+func runIngest(ctx context.Context, defaultDB string, args []string) error {
 	flags := flag.NewFlagSet("ingest", flag.ContinueOnError)
-	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
-	keep := flags.Int("keep", cfg.Retention, "number of latest issues retained per publisher")
+	dbPath := flags.String("db", defaultDB, "shared SQLite database path")
+	keep := flags.Int("keep", 4, "number of latest issues retained per publisher")
 	force := flags.Bool("force", false, "reparse EPUB and replace the entire issue")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 1 {
-		return errors.New("usage: magazines2db ingest [flags] <issue-dir>")
+		return errors.New("usage: magazine2db ingest [flags] <issue-dir>")
 	}
 	input, err := parser.InspectInput(flags.Arg(0))
 	if err != nil {
@@ -128,16 +128,16 @@ func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	return nil
 }
 
-func runRead(ctx context.Context, cfg config.Config, args []string) error {
+func runRead(ctx context.Context, defaultDB string, args []string) error {
 	flags := flag.NewFlagSet("read", flag.ContinueOnError)
-	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
+	dbPath := flags.String("db", defaultDB, "shared SQLite database path")
 	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
 	xhtml := flags.Bool("xhtml", false, "return original XHTML; with --json include body_xhtml")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 1 {
-		return errors.New("usage: magazines2db read [flags] <stable-id|numeric-id>")
+		return errors.New("usage: magazine2db read [flags] <stable-id|numeric-id>")
 	}
 	db, err := store.Open(*dbPath)
 	if err != nil {
@@ -165,9 +165,9 @@ func runRead(ctx context.Context, cfg config.Config, args []string) error {
 	return nil
 }
 
-func runList(ctx context.Context, cfg config.Config, args []string) error {
+func runList(ctx context.Context, defaultDB string, args []string) error {
 	flags := flag.NewFlagSet("list", flag.ContinueOnError)
-	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
+	dbPath := flags.String("db", defaultDB, "shared SQLite database path")
 	page := flags.Int("page", 1, "page number, starting from 1")
 	pageSize := flags.Int("page-size", 20, "number of articles per page")
 	issueID := flags.Int64("issue", 0, "filter by issue ID")
@@ -176,7 +176,7 @@ func runList(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("usage: magazines2db list [flags]")
+		return errors.New("usage: magazine2db list [flags]")
 	}
 	if *page < 1 || *pageSize < 1 || *issueID < 0 {
 		return errors.New("page and page-size must be positive; issue must not be negative")
@@ -246,10 +246,10 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `magazine2db - ingest and read Economist/Wired issues
 
 Usage:
-  magazine2db ingest [--db PATH] [--force] <issue-dir>
+  magazine2db ingest [--db PATH] [--keep N] [--force] <issue-dir>
   magazine2db issue [--db PATH] [--json]
   magazine2db read [--db PATH] [--json] [--xhtml] <stable-id|numeric-id>
   magazine2db list [--db PATH] [--page N] [--page-size N] [--issue ID] [--json]
 
-Configuration is loaded from ./cfg.json, or from cfg.json next to the executable.`)
+Defaults: magazines.db next to the executable; retain 4 issues per publisher.`)
 }

@@ -28,9 +28,8 @@ func TestCLIEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	runtimeDir := t.TempDir()
-	prepareRuntime(t, projectDir, runtimeDir)
 
-	binary := filepath.Join(runtimeDir, "magazines2db")
+	binary := filepath.Join(runtimeDir, "magazine2db")
 	build := exec.CommandContext(ctx, "go", "build", "-o", binary, ".")
 	build.Dir = projectDir
 	if output, err := build.CombinedOutput(); err != nil {
@@ -59,7 +58,7 @@ func TestCLIEndToEnd(t *testing.T) {
 	ingested := runE2ECommand(t, ctx, runtimeDir, binary, "ingest", "--force", issuePath)
 	assertContains(t, ingested, "ingested: economist 2026-06-27, 1 articles")
 	if _, err := os.Stat(filepath.Join(runtimeDir, "magazines.db")); err != nil {
-		t.Fatalf("database was not created next to cfg.json: %v", err)
+		t.Fatalf("database was not created next to the executable: %v", err)
 	}
 
 	// An existing issue needs no source unless force is requested.
@@ -154,29 +153,15 @@ func TestCLIEndToEnd(t *testing.T) {
 	if err := json.Unmarshal([]byte(withXHTML), &articleResult); err != nil || articleResult.BodyXHTML != xhtml {
 		t.Fatalf("XHTML JSON round trip failed: %v", err)
 	}
-	// Running outside the runtime directory must fall back to cfg.json next to the binary.
+	// The default database is next to the binary, regardless of the working directory.
 	outsideDir := t.TempDir()
 	fromOutside := runE2ECommand(t, ctx, outsideDir, binary, "read", e2eArticleID)
 	assertContains(t, fromOutside, e2eArticleID)
-}
-
-func prepareRuntime(t *testing.T, projectDir, runtimeDir string) {
-	t.Helper()
-	cfgData, err := os.ReadFile(filepath.Join(projectDir, "cfg.json"))
-	if err != nil {
-		t.Fatalf("read project cfg.json: %v", err)
-	}
-	var cfg map[string]any
-	if err := json.Unmarshal(cfgData, &cfg); err != nil {
-		t.Fatalf("decode project cfg.json: %v", err)
-	}
-	cfg["database"] = "magazines.db"
-	isolatedCfg, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(runtimeDir, "cfg.json"), isolatedCfg, 0o600); err != nil {
-		t.Fatal(err)
+	// --db must select the requested database instead of the default one.
+	otherDB := filepath.Join(outsideDir, "other.db")
+	other := runE2ECommand(t, ctx, outsideDir, binary, "issue", "--db", otherDB, "--json")
+	if err := json.Unmarshal([]byte(other), &issueResult); err != nil || issueResult.Count != 0 {
+		t.Fatalf("database override failed: %s, %v", other, err)
 	}
 
 }

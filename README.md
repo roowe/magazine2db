@@ -35,34 +35,25 @@ go build -trimpath -ldflags="-s -w" -o magazine2db .
 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazine2db .
 ```
 
-开发阶段也可以不构建，直接使用 `go run .`。
+程序无需配置文件。默认使用可执行文件同目录的 `magazines.db`，每个刊物保留最新 4 期；可以从任意目录启动。
 
-程序按以下顺序推断工作目录：
-
-1. 当前目录中存在 `cfg.json` 时，使用当前目录（开发模式）。
-2. 否则查找 `magazine2db` 可执行文件同目录的 `cfg.json`（发布模式）。
-
-`cfg.json` 里的数据库相对路径以工作目录为基准，因此可以从任意目录启动发布后的程序。程序不依赖 LLM、API 密钥或登录状态。
+使用 `--db PATH` 指定其他数据库（相对路径以当前目录为基准），使用 `ingest --keep N` 覆盖保留期数。
 
 发布目录结构如下：
 
 ```text
 runtime/
 ├── magazine2db
-├── cfg.json
 └── magazines.db
 ```
 
-`cfg.json` 保存数据库路径和保留期数：
+开发时 `go run .` 的可执行文件位于临时目录，因此应显式指定数据库：
 
-```json
-{
-  "database": "magazines.db",
-  "retention": 4
-}
+```bash
+go run . issue --db ./magazines.db
 ```
 
-`--db` 仍可临时覆盖 `cfg.json` 中的数据库路径。
+以下示例使用构建后的 `./magazine2db`。程序不依赖 LLM、API 密钥或登录状态。
 
 ## 同步杂志
 
@@ -101,8 +92,8 @@ PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
 传入一期杂志目录：
 
 ```bash
-go run . ingest ./data/awesome-english-ebooks/01_economist/te_2026.06.13
-go run . ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
+./magazine2db ingest ./data/awesome-english-ebooks/01_economist/te_2026.06.13
+./magazine2db ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
 ```
 
 工具只接受包含 EPUB 的目录，原生读取 EPUB：通过 OPF、nav / NCX 和 spine 定位并排序文章，原样保存 XHTML，再使用 `JohannesKaufmann/html-to-markdown/v2` 转换为 Markdown。不再支持 TXT 导入；先按刊物和期号查询数据库，已存在且未指定 `--force` 时直接跳过，无需 EPUB；需要解析时，目录没有 EPUB 会报错，此时数据库可能已创建。EPUB 解析失败会直接报错，不使用 TXT 回退。已有数据库中的历史纯文本文章仍可正常读取。重复的 `publisher + issue_date` 默认跳过。显式使用 `ingest --force <目录>` 可从 EPUB 刷新已有期刊：在同一事务中删除整期期刊记录及其文章，再插入本次解析结果并执行保留期数清理；失败时整体回滚。期刊及文章 ID 可能变化，元数据以本次解析为准，下游应重新获取期刊和文章列表。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章。
@@ -110,8 +101,8 @@ go run . ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
 查看已经入库的期刊及其文章数量：
 
 ```bash
-go run . issue
-go run . issue --json
+./magazine2db issue
+./magazine2db issue --json
 ```
 
 默认按期刊日期倒序输出 plain text；`--json` 返回 `count` 和 `issues`。每期包含 `id`、`publisher`、`issue_date`、`article_count` 和 `imported_at`。
@@ -119,9 +110,9 @@ go run . issue --json
 ## 文章读取
 
 ```bash
-go run . read economist:2026-06-13:the-world-cup-paradox
-go run . read 42
-go run . read --json 42
+./magazine2db read economist:2026-06-13:the-world-cup-paradox
+./magazine2db read 42
+./magazine2db read --json 42
 ```
 
 `read --json` 默认返回元数据及 Markdown `body`，供下游直接使用。JSON 字段统一使用 snake_case。
@@ -129,8 +120,8 @@ go run . read --json 42
 `body_xhtml` 保存 ZIP 中的原始 UTF-8 XHTML，不重新序列化。`source_href` 记录 EPUB 内部文件路径。需要核对原始数据时：
 
 ```bash
-go run . read --xhtml 42
-go run . read --json --xhtml 42
+./magazine2db read --xhtml 42
+./magazine2db read --json --xhtml 42
 ```
 
 前者输出原始 XHTML，后者在 JSON 中包含 `body_xhtml`。历史 TXT 导入或尚未刷新的记录没有 XHTML，显式请求时会报错。
@@ -140,12 +131,12 @@ go run . read --json --xhtml 42
 分页获取文章标题和原文节选时使用 `list`：
 
 ```bash
-go run . list --page 1 --page-size 20
-go run . list --issue 7 --page 1 --page-size 20
-go run . list --page 1 --page-size 20 --json
+./magazine2db list --page 1 --page-size 20
+./magazine2db list --issue 7 --page 1 --page-size 20
+./magazine2db list --page 1 --page-size 20 --json
 ```
 
-默认输出便于阅读的 plain text；使用 `--issue ID` 可只查看某一期。传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`excerpt`；`excerpt` 为正文开头最多 200 个 Unicode 字符，完整正文通过 `read` 获取。
+默认输出便于阅读的 plain text；使用 `--issue ID` 可只查看某一期。传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`excerpt`；`excerpt` 为正文开头最多 1000 个 Unicode 字符，完整正文通过 `read` 获取。
 
 ## 数据库重建
 
