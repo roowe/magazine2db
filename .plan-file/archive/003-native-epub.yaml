@@ -1,0 +1,15 @@
+goal: 原生读取 EPUB，保存原始 XHTML 和供下游检索的纯文本
+phases:
+  - id: 1
+    content: 实现 EPUB 目录定位与通用 HTML 文本提取
+    status: done
+  - id: 2
+    content: 接入数据库迁移及显式刷新已有期刊
+    status: done
+  - id: 3
+    content: 验证合成样本和本地 EPUB，更新文档及运行库
+    status: done
+notes:
+  - content: XHTML 原样保留且不参与 FTS；TXT-only 保持兼容。
+errors: []
+summary: 已完成原生 EPUB、schema v2、显式刷新及 CLI XHTML 读取；8 本本地 EPUB 全通过，实际库回填 453 篇，71 篇因原 EPUB 缺失保留 TXT。

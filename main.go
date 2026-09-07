@@ -9,15 +9,12 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
-	"time"
 
 	"magazine2db/internal/config"
 	"magazine2db/internal/domain"
 	"magazine2db/internal/parser"
 	"magazine2db/internal/store"
-	"magazine2db/internal/summary"
 )
 
 func main() {
@@ -43,16 +40,10 @@ func run(ctx context.Context, args []string) error {
 		handler = runIngest
 	case "issue":
 		handler = runIssue
-	case "search":
-		handler = runSearch
 	case "read":
 		handler = runRead
 	case "list":
 		handler = runList
-	case "summarize":
-		handler = runSummarize
-	case "smoke":
-		handler = runSmoke
 	default:
 		usage()
 		return fmt.Errorf("unknown command %q", args[0])
@@ -95,10 +86,14 @@ func runIssue(ctx context.Context, cfg config.Config, args []string) error {
 	return nil
 }
 
+// runIngest 先从目录路径识别刊物和期号，再查数据库决定是否需要解析。
+// 已存在且未指定 --force 时直接跳过，无需查找或读取 EPUB。
+// 需要导入时才定位并解析 EPUB：新期刊新增，已有期刊刷新并保留文章 ID；缺少 EPUB 则报错。
 func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	flags := flag.NewFlagSet("ingest", flag.ContinueOnError)
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
 	keep := flags.Int("keep", cfg.Retention, "number of latest issues retained per publisher")
+	force := flags.Bool("force", false, "reparse EPUB even if the issue exists, retaining article IDs")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -109,14 +104,6 @@ func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
-	hasSource, err := parser.HasSource(input.Path)
-	if err != nil {
-		return err
-	}
-	if !hasSource {
-		fmt.Printf("skipped: %s %s (no TXT/EPUB in directory)\n", input.Publisher, input.IssueDate)
-		return nil
-	}
 	db, err := store.Open(*dbPath)
 	if err != nil {
 		return err
@@ -126,7 +113,7 @@ func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return fmt.Errorf("check duplicate issue: %w", err)
 	}
-	if exists {
+	if exists && !*force {
 		fmt.Printf("skipped: %s %s already exists\n", input.Publisher, input.IssueDate)
 		return nil
 	}
@@ -134,55 +121,15 @@ func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := db.InsertIssue(ctx, issue, *keep); err != nil {
+	if exists {
+		err = db.RefreshIssue(ctx, issue)
+	} else {
+		err = db.InsertIssue(ctx, issue, *keep)
+	}
+	if err != nil {
 		return err
 	}
 	fmt.Printf("ingested: %s %s, %d articles -> %s\n", issue.Publisher, issue.IssueDate, len(issue.Articles), *dbPath)
-	return nil
-}
-
-func runSearch(ctx context.Context, cfg config.Config, args []string) error {
-	flags := flag.NewFlagSet("search", flag.ContinueOnError)
-	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
-	publisher := flags.String("publisher", "", "filter by economist or wired")
-	limit := flags.Int("limit", 20, "maximum results")
-	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
-	query := strings.Join(flags.Args(), " ")
-	if strings.TrimSpace(query) == "" {
-		return errors.New("usage: magazines2db search [flags] <query>")
-	}
-	if *limit < 1 {
-		return errors.New("limit must be positive")
-	}
-	if err := validatePublisher(*publisher); err != nil {
-		return err
-	}
-	db, err := store.Open(*dbPath)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	hits, err := db.Search(ctx, query, *publisher, *limit)
-	if err != nil {
-		return err
-	}
-	if *jsonOutput {
-		if hits == nil {
-			hits = []domain.SearchHit{}
-		}
-		return writeJSON(struct {
-			Count   int                `json:"count"`
-			Results []domain.SearchHit `json:"results"`
-		}{Count: len(hits), Results: hits})
-	}
-	for _, hit := range hits {
-		fmt.Printf("[%d] %s\n%s | %s | %s\n%s\n\n",
-			hit.ID, hit.StableID, hit.Publisher, hit.IssueDate, hit.Title, hit.Preview)
-	}
-	fmt.Printf("%d result(s)\n", len(hits))
 	return nil
 }
 
@@ -190,6 +137,7 @@ func runRead(ctx context.Context, cfg config.Config, args []string) error {
 	flags := flag.NewFlagSet("read", flag.ContinueOnError)
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
 	jsonOutput := flags.Bool("json", false, "output machine-readable JSON")
+	xhtml := flags.Bool("xhtml", false, "return original XHTML; with --json include body_xhtml")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -205,8 +153,18 @@ func runRead(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
+	if *xhtml && article.BodyXHTML == "" {
+		return errors.New("original XHTML unavailable; refresh this issue from EPUB")
+	}
 	if *jsonOutput {
+		if !*xhtml {
+			article.BodyXHTML = ""
+		}
 		return writeJSON(article)
+	}
+	if *xhtml {
+		_, err := fmt.Print(article.BodyXHTML)
+		return err
 	}
 	printArticle(article)
 	return nil
@@ -233,20 +191,20 @@ func runList(ctx context.Context, cfg config.Config, args []string) error {
 		return err
 	}
 	defer db.Close()
-	items, total, err := db.ListArticleSummaries(ctx, *page, *pageSize, *issueID)
+	items, total, err := db.ListArticles(ctx, *page, *pageSize, *issueID)
 	if err != nil {
 		return err
 	}
 	if *jsonOutput {
 		return writeJSON(struct {
-			Page     int                     `json:"page"`
-			PageSize int                     `json:"page_size"`
-			Total    int                     `json:"total"`
-			Items    []domain.ArticleSummary `json:"items"`
+			Page     int                      `json:"page"`
+			PageSize int                      `json:"page_size"`
+			Total    int                      `json:"total"`
+			Items    []domain.ArticleListItem `json:"items"`
 		}{Page: *page, PageSize: *pageSize, Total: total, Items: items})
 	}
 	for _, item := range items {
-		fmt.Printf("[%d] %s\n%s\n\n", item.ID, item.Title, removeBlankLines(item.Summary))
+		fmt.Printf("[%d] %s\n%s\n\n", item.ID, item.Title, removeBlankLines(item.Excerpt))
 	}
 	fmt.Printf("page %d | page size %d | total %d\n", *page, *pageSize, total)
 	return nil
@@ -261,136 +219,6 @@ func removeBlankLines(value string) string {
 		}
 	}
 	return strings.Join(result, "\n")
-}
-
-func runSmoke(ctx context.Context, cfg config.Config, args []string) error {
-	flags := flag.NewFlagSet("smoke", flag.ContinueOnError)
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
-	if flags.NArg() != 0 {
-		return errors.New("usage: magazine2db smoke")
-	}
-	service, err := summary.New(ctx, summary.Config{
-		CodexBin: cfg.Summary.CodexBin,
-		WorkDir:  cfg.WorkDir,
-		Timeout:  time.Duration(cfg.Summary.TimeoutSeconds) * time.Second,
-	})
-	if err != nil {
-		return err
-	}
-	output, err := service.Smoke(ctx)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("ok: %s (%s, run=%s)\n", output.Provider, service.Version(), output.RunDir)
-	return nil
-}
-
-func runSummarize(ctx context.Context, cfg config.Config, args []string) error {
-	flags := flag.NewFlagSet("summarize", flag.ContinueOnError)
-	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
-	limit := flags.Int("limit", 0, "maximum unsummarized articles; 0 means all")
-	concurrency := flags.Int("concurrency", 4, "parallel model requests")
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
-	if flags.NArg() != 0 {
-		return errors.New("usage: magazines2db summarize [flags]")
-	}
-	if *concurrency < 1 {
-		return errors.New("concurrency must be positive")
-	}
-	if *limit < 0 {
-		return errors.New("limit must not be negative")
-	}
-	db, err := store.Open(*dbPath)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	articles, err := db.PendingSummaries(ctx, *limit)
-	if err != nil {
-		return err
-	}
-	if len(articles) == 0 {
-		fmt.Println("nothing to summarize")
-		return nil
-	}
-	service, err := summary.New(ctx, summary.Config{
-		CodexBin: cfg.Summary.CodexBin,
-		WorkDir:  cfg.WorkDir,
-		Timeout:  time.Duration(cfg.Summary.TimeoutSeconds) * time.Second,
-	})
-	if err != nil {
-		return err
-	}
-
-	type result struct {
-		article domain.StoredArticle
-		output  summary.Output
-		err     error
-	}
-	jobs := make(chan domain.StoredArticle)
-	results := make(chan result)
-	var workers sync.WaitGroup
-	for range *concurrency {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
-			for article := range jobs {
-				output, err := service.Summarize(ctx, article)
-				results <- result{article: article, output: output, err: err}
-			}
-		}()
-	}
-	go func() {
-		defer close(jobs)
-		for _, article := range articles {
-			select {
-			case jobs <- article:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	go func() {
-		workers.Wait()
-		close(results)
-	}()
-
-	succeeded, failed := 0, 0
-	for result := range results {
-		err := result.err
-		if err == nil {
-			err = db.SaveSummary(ctx, result.article.ID, result.output.Text, result.output.Provider)
-		}
-		if err != nil {
-			if saveErr := db.SaveSummaryError(ctx, result.article.ID, compactError(err)); saveErr != nil {
-				err = errors.Join(err, saveErr)
-			}
-			failed++
-			fmt.Fprintf(os.Stderr, "failed: [%d] %s: %v\n", result.article.ID, result.article.Title, err)
-			continue
-		}
-		succeeded++
-		fmt.Printf("summarized: [%d] %s (%s, run=%s)\n",
-			result.article.ID, result.article.Title, result.output.Provider, result.output.RunDir)
-	}
-	fmt.Printf("summary complete: %d succeeded, %d failed\n", succeeded, failed)
-	if failed > 0 {
-		return fmt.Errorf("%d summary job(s) failed", failed)
-	}
-	return ctx.Err()
-}
-
-func compactError(err error) string {
-	const maxCharacters = 1000
-	characters := []rune(err.Error())
-	if len(characters) > maxCharacters {
-		characters = characters[:maxCharacters]
-	}
-	return string(characters)
 }
 
 func printArticle(article domain.StoredArticle) {
@@ -410,9 +238,6 @@ func printArticle(article domain.StoredArticle) {
 	if article.Description != "" {
 		fmt.Printf("\n%s\n", article.Description)
 	}
-	if article.SummaryZH != "" {
-		fmt.Printf("\n## 中文摘要\n\n%s\n", article.SummaryZH)
-	}
 	fmt.Printf("\n## Article\n\n%s\n", article.Body)
 }
 
@@ -422,24 +247,14 @@ func writeJSON(value any) error {
 	return encoder.Encode(value)
 }
 
-func validatePublisher(value string) error {
-	if value == "" || value == "economist" || value == "wired" {
-		return nil
-	}
-	return fmt.Errorf("unsupported publisher %q", value)
-}
-
 func usage() {
-	fmt.Fprintln(os.Stderr, `magazine2db - ingest and search Economist/Wired issues
+	fmt.Fprintln(os.Stderr, `magazine2db - ingest and read Economist/Wired issues
 
 Usage:
-  magazine2db ingest [--db PATH] <issue-dir>
+  magazine2db ingest [--db PATH] [--force] <issue-dir>
   magazine2db issue [--db PATH] [--json]
-  magazine2db search [--db PATH] [--publisher NAME] [--limit N] [--json] <query>
-  magazine2db read [--db PATH] [--json] <stable-id|numeric-id>
+  magazine2db read [--db PATH] [--json] [--xhtml] <stable-id|numeric-id>
   magazine2db list [--db PATH] [--page N] [--page-size N] [--issue ID] [--json]
-  magazine2db summarize [--db PATH] [--limit N] [--concurrency N]
-  magazine2db smoke
 
 Configuration is loaded from ./cfg.json, or from cfg.json next to the executable.`)
 }

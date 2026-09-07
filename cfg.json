@@ -1,9 +1,4 @@
 {
   "database": "magazines.db",
-  "retention": 4,
-  "summary": {
-    "concurrency": 4,
-    "timeout_seconds": 1800,
-    "codex_bin": "codex"
-  }
+  "retention": 4
 }

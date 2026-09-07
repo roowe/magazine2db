@@ -1,0 +1,608 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+    <meta content="02dd03e3-af04-438d-baed-24e67846b9b2" name="dtb:uid"/>
+    <meta content="0" name="dtb:depth"/>
+    <meta content="0" name="dtb:totalPageCount"/>
+    <meta content="0" name="dtb:maxPageNumber"/>
+  </head>
+  <docTitle>
+    <text>TheEconomist.2026.09.05</text>
+  </docTitle>
+  <navMap>
+    <navPoint id="sep_0" playOrder="1">
+      <navLabel>
+        <text>The world this week</text>
+      </navLabel>
+      <content src="260b3b45-abc6-4c2c-b498-673bf7ba6e52.html"/>
+      <navPoint id="chapter_2" playOrder="2">
+        <navLabel>
+          <text>Politics</text>
+        </navLabel>
+        <content src="260b3b45-abc6-4c2c-b498-673bf7ba6e52.html"/>
+      </navPoint>
+      <navPoint id="chapter_3" playOrder="3">
+        <navLabel>
+          <text>Business</text>
+        </navLabel>
+        <content src="b5723733-2a4b-4040-a15f-13cb9852ea91.html"/>
+      </navPoint>
+      <navPoint id="chapter_4" playOrder="4">
+        <navLabel>
+          <text>Cartoon: Putin cornered</text>
+        </navLabel>
+        <content src="19f5cec5-b329-4a21-8af6-99b74d1c9cdb.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_1" playOrder="5">
+      <navLabel>
+        <text>Leaders</text>
+      </navLabel>
+      <content src="b171c474-00e7-48c0-a595-04e4a679c1c3.html"/>
+      <navPoint id="chapter_6" playOrder="6">
+        <navLabel>
+          <text>Nvidia is driving the AI boom. Good</text>
+        </navLabel>
+        <content src="b171c474-00e7-48c0-a595-04e4a679c1c3.html"/>
+      </navPoint>
+      <navPoint id="chapter_7" playOrder="7">
+        <navLabel>
+          <text>Donald Trump’s Venezuela deal is bold but dodgy</text>
+        </navLabel>
+        <content src="c0e2a96b-849a-4320-b8fb-d16548b74592.html"/>
+      </navPoint>
+      <navPoint id="chapter_8" playOrder="8">
+        <navLabel>
+          <text>Yoweri Museveni’s decline is putting Uganda on a terrifying path</text>
+        </navLabel>
+        <content src="b7ade6fb-919a-41a4-8131-8a0430148d9e.html"/>
+      </navPoint>
+      <navPoint id="chapter_9" playOrder="9">
+        <navLabel>
+          <text>In many countries, the biggest barrier to prosperity is in the home</text>
+        </navLabel>
+        <content src="f95f4647-b982-4706-8688-9bdce13038cd.html"/>
+      </navPoint>
+      <navPoint id="chapter_10" playOrder="10">
+        <navLabel>
+          <text>What the Bayeux tapestry teaches about surviving against the odds</text>
+        </navLabel>
+        <content src="7677eed7-c9da-4836-8d20-5035b0a3b1e5.html"/>
+      </navPoint>
+      <navPoint id="chapter_11" playOrder="11">
+        <navLabel>
+          <text>The moral panic over data centres is foolish</text>
+        </navLabel>
+        <content src="552f19ca-9e65-4856-81a7-d3172bcae8cb.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_2" playOrder="12">
+      <navLabel>
+        <text>Letters</text>
+      </navLabel>
+      <content src="aa46fa0c-488a-4ffe-97f5-93611c6c21d4.html"/>
+      <navPoint id="chapter_13" playOrder="13">
+        <navLabel>
+          <text>The opposition of scientific research on animals</text>
+        </navLabel>
+        <content src="aa46fa0c-488a-4ffe-97f5-93611c6c21d4.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_3" playOrder="14">
+      <navLabel>
+        <text>By Invitation</text>
+      </navLabel>
+      <content src="b97bb5ca-153e-4f98-9cf4-c4b6e5948654.html"/>
+      <navPoint id="chapter_15" playOrder="15">
+        <navLabel>
+          <text>Europe cannot protect Russia from itself</text>
+        </navLabel>
+        <content src="b97bb5ca-153e-4f98-9cf4-c4b6e5948654.html"/>
+      </navPoint>
+      <navPoint id="chapter_16" playOrder="16">
+        <navLabel>
+          <text>The world may have less time than it thinks on climate change</text>
+        </navLabel>
+        <content src="5eb8acef-8a43-4061-8ad2-3769e6d708ad.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_4" playOrder="17">
+      <navLabel>
+        <text>Briefing</text>
+      </navLabel>
+      <content src="1328f933-b9f5-4193-a8b7-18c33b1e0297.html"/>
+      <navPoint id="chapter_18" playOrder="18">
+        <navLabel>
+          <text>Nvidia is the central bank of AI</text>
+        </navLabel>
+        <content src="1328f933-b9f5-4193-a8b7-18c33b1e0297.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_5" playOrder="19">
+      <navLabel>
+        <text>Asia</text>
+      </navLabel>
+      <content src="c65328f5-e9a0-46fa-a4a9-b2cd3de439c9.html"/>
+      <navPoint id="chapter_20" playOrder="20">
+        <navLabel>
+          <text>Chandrababu Naidu’s techno-utopian vision for his Indian state</text>
+        </navLabel>
+        <content src="c65328f5-e9a0-46fa-a4a9-b2cd3de439c9.html"/>
+      </navPoint>
+      <navPoint id="chapter_21" playOrder="21">
+        <navLabel>
+          <text>The Pacific Islands Forum fizzles as China flexes its muscles</text>
+        </navLabel>
+        <content src="717194b6-1a28-41b3-9dda-d1236c3bde74.html"/>
+      </navPoint>
+      <navPoint id="chapter_22" playOrder="22">
+        <navLabel>
+          <text>Catastrophic floods warn Nepal of more disasters to come</text>
+        </navLabel>
+        <content src="aada92cb-4a49-4455-9518-9c6c30e43bb7.html"/>
+      </navPoint>
+      <navPoint id="chapter_23" playOrder="23">
+        <navLabel>
+          <text>Japan’s mainstream political opposition is a shambles</text>
+        </navLabel>
+        <content src="485bcddf-7f31-4bc3-8726-2f4a7f74939a.html"/>
+      </navPoint>
+      <navPoint id="chapter_24" playOrder="24">
+        <navLabel>
+          <text>India’s payments system is ten. It must start paying for itself</text>
+        </navLabel>
+        <content src="179ea795-8449-4e3e-a2d7-4b3f5798436a.html"/>
+      </navPoint>
+      <navPoint id="chapter_25" playOrder="25">
+        <navLabel>
+          <text>Social-media curbs for kids are not working in Asia</text>
+        </navLabel>
+        <content src="acc5a74e-f960-4110-87f9-45e33a24394b.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_6" playOrder="26">
+      <navLabel>
+        <text>China</text>
+      </navLabel>
+      <content src="a7f6129b-ea1b-45f2-846f-a79f21a0ee2f.html"/>
+      <navPoint id="chapter_27" playOrder="27">
+        <navLabel>
+          <text>Why can’t a tech-savvy China make its food safe?</text>
+        </navLabel>
+        <content src="a7f6129b-ea1b-45f2-846f-a79f21a0ee2f.html"/>
+      </navPoint>
+      <navPoint id="chapter_28" playOrder="28">
+        <navLabel>
+          <text>The lengthening reach of China’s armed forces</text>
+        </navLabel>
+        <content src="50986392-f090-4219-a70b-3b56c186c3d2.html"/>
+      </navPoint>
+      <navPoint id="chapter_29" playOrder="29">
+        <navLabel>
+          <text>The serious, rivalrous business of Chinese barbecue</text>
+        </navLabel>
+        <content src="bec9bdff-38e6-4998-b93c-e33a6847a763.html"/>
+      </navPoint>
+      <navPoint id="chapter_30" playOrder="30">
+        <navLabel>
+          <text>In film and in life, China pursues dragon-restaurant diplomacy</text>
+        </navLabel>
+        <content src="8fcf28c8-53ba-4a64-a27b-3fbf49fef862.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_7" playOrder="31">
+      <navLabel>
+        <text>United States</text>
+      </navLabel>
+      <content src="ad9e1afa-70da-4972-ae5f-68287cacd188.html"/>
+      <navPoint id="chapter_32" playOrder="32">
+        <navLabel>
+          <text>How data centres became one of America’s hottest political issues</text>
+        </navLabel>
+        <content src="ad9e1afa-70da-4972-ae5f-68287cacd188.html"/>
+      </navPoint>
+      <navPoint id="chapter_33" playOrder="33">
+        <navLabel>
+          <text>Quantifying anger in American politics</text>
+        </navLabel>
+        <content src="0f9c03f1-cc62-42cd-a72c-88881f4a932f.html"/>
+      </navPoint>
+      <navPoint id="chapter_34" playOrder="34">
+        <navLabel>
+          <text>Pete Hegseth is conquering the Pentagon</text>
+        </navLabel>
+        <content src="00f783e6-97cf-493c-b882-8dd1dc5cbc7c.html"/>
+      </navPoint>
+      <navPoint id="chapter_35" playOrder="35">
+        <navLabel>
+          <text>Where Canada can hurt America most</text>
+        </navLabel>
+        <content src="923e3468-162d-45f1-9631-62b44907ccea.html"/>
+      </navPoint>
+      <navPoint id="chapter_36" playOrder="36">
+        <navLabel>
+          <text>America’s support system for disabled pupils is broken</text>
+        </navLabel>
+        <content src="f3bbdf0e-36f0-4eb6-b3b0-7c07c950290e.html"/>
+      </navPoint>
+      <navPoint id="chapter_37" playOrder="37">
+        <navLabel>
+          <text>Woke 1 was about identity. Woke 2 is about class</text>
+        </navLabel>
+        <content src="ac90819e-89c6-4472-aea4-a762fce63b81.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_8" playOrder="38">
+      <navLabel>
+        <text>The Americas</text>
+      </navLabel>
+      <content src="f590e160-7eac-4a70-a7a4-20fbd8ada00e.html"/>
+      <navPoint id="chapter_39" playOrder="39">
+        <navLabel>
+          <text>America has laid claim to a fifth of Venezuela’s oil</text>
+        </navLabel>
+        <content src="f590e160-7eac-4a70-a7a4-20fbd8ada00e.html"/>
+      </navPoint>
+      <navPoint id="chapter_40" playOrder="40">
+        <navLabel>
+          <text>The presidential candidate Brazil’s authorities tried to ban</text>
+        </navLabel>
+        <content src="002f0134-8c78-47ad-b91f-d0cbfb83eaf5.html"/>
+      </navPoint>
+      <navPoint id="chapter_41" playOrder="41">
+        <navLabel>
+          <text>A prawn superpower rises</text>
+        </navLabel>
+        <content src="f6b90d6a-061a-4041-95f8-ba100661027c.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_9" playOrder="42">
+      <navLabel>
+        <text>Middle East &amp; Africa</text>
+      </navLabel>
+      <content src="4491f6c0-3203-49f3-a167-0dd77cbc9bd2.html"/>
+      <navPoint id="chapter_43" playOrder="43">
+        <navLabel>
+          <text>What will happen to Uganda when Yoweri Museveni goes?</text>
+        </navLabel>
+        <content src="4491f6c0-3203-49f3-a167-0dd77cbc9bd2.html"/>
+      </navPoint>
+      <navPoint id="chapter_44" playOrder="44">
+        <navLabel>
+          <text>Ethiopia’s undeclared drone war</text>
+        </navLabel>
+        <content src="bb7abe55-e7ba-46a6-9768-66d73ecec203.html"/>
+      </navPoint>
+      <navPoint id="chapter_45" playOrder="45">
+        <navLabel>
+          <text>Iran’s proxies are going their own way</text>
+        </navLabel>
+        <content src="3d98489c-46be-4baf-a890-acf5548069c2.html"/>
+      </navPoint>
+      <navPoint id="chapter_46" playOrder="46">
+        <navLabel>
+          <text>Binyamin Netanyahu sows discord ahead of Israel’s election</text>
+        </navLabel>
+        <content src="9c996a0c-a342-4654-b0b1-986a8ecccdb8.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_10" playOrder="47">
+      <navLabel>
+        <text>Europe</text>
+      </navLabel>
+      <content src="603cc4e9-6189-4c6b-a030-ea0f32a0b754.html"/>
+      <navPoint id="chapter_48" playOrder="48">
+        <navLabel>
+          <text>How the Alternative for Germany would govern</text>
+        </navLabel>
+        <content src="603cc4e9-6189-4c6b-a030-ea0f32a0b754.html"/>
+      </navPoint>
+      <navPoint id="chapter_49" playOrder="49">
+        <navLabel>
+          <text>Cornered, Vladimir Putin plans to escalate his war</text>
+        </navLabel>
+        <content src="c205371f-3e7a-4ade-ac39-0d404c8039c6.html"/>
+      </navPoint>
+      <navPoint id="chapter_50" playOrder="50">
+        <navLabel>
+          <text>Haakon VIII, Norway’s new king, has a big crown to fill</text>
+        </navLabel>
+        <content src="89dfb3f5-8574-469a-8c0f-5d3e865dadbe.html"/>
+      </navPoint>
+      <navPoint id="chapter_51" playOrder="51">
+        <navLabel>
+          <text>EU enlargement hits an Icelandic snag</text>
+        </navLabel>
+        <content src="ed962cf1-7aba-45c7-8ef3-0c782f225c0d.html"/>
+      </navPoint>
+      <navPoint id="chapter_52" playOrder="52">
+        <navLabel>
+          <text>Tiny Montenegro still hopes it will be the EU’s next member</text>
+        </navLabel>
+        <content src="346d5ade-1fc4-4835-9a3c-66e22ad298ff.html"/>
+      </navPoint>
+      <navPoint id="chapter_53" playOrder="53">
+        <navLabel>
+          <text>America has a whopping debt. But Europe has the whopping debt problem</text>
+        </navLabel>
+        <content src="126e00df-fe24-4db2-80fa-f8e871d4b6b7.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_11" playOrder="54">
+      <navLabel>
+        <text>Britain</text>
+      </navLabel>
+      <content src="00c65be5-f114-4c43-97ca-e6e20a1451b3.html"/>
+      <navPoint id="chapter_55" playOrder="55">
+        <navLabel>
+          <text>The changing geography of violent crime in Britain</text>
+        </navLabel>
+        <content src="00c65be5-f114-4c43-97ca-e6e20a1451b3.html"/>
+      </navPoint>
+      <navPoint id="chapter_56" playOrder="56">
+        <navLabel>
+          <text>London’s approach to knife crime is working</text>
+        </navLabel>
+        <content src="5b3a8cfa-17f0-4958-9bd0-22a7f8ec1830.html"/>
+      </navPoint>
+      <navPoint id="chapter_57" playOrder="57">
+        <navLabel>
+          <text>Has London passed peak phone snatching? </text>
+        </navLabel>
+        <content src="2f9fd078-3ed5-4fd3-ba54-92c43052bf88.html"/>
+      </navPoint>
+      <navPoint id="chapter_58" playOrder="58">
+        <navLabel>
+          <text>Can Andy Burnham extend his winning streak in London?</text>
+        </navLabel>
+        <content src="65875e1b-f5ab-427d-8e5a-c32b623ac6e2.html"/>
+      </navPoint>
+      <navPoint id="chapter_59" playOrder="59">
+        <navLabel>
+          <text>Why the world’s best female footballer joined a tiny London team</text>
+        </navLabel>
+        <content src="5ce76804-f195-4f59-a12d-500b20612409.html"/>
+      </navPoint>
+      <navPoint id="chapter_60" playOrder="60">
+        <navLabel>
+          <text>The British government turns to influencers to get its message out</text>
+        </navLabel>
+        <content src="8e33de10-c826-4a38-9f97-f4d1829a3145.html"/>
+      </navPoint>
+      <navPoint id="chapter_61" playOrder="61">
+        <navLabel>
+          <text>France is love-bombing Britain</text>
+        </navLabel>
+        <content src="45ba4175-8585-4676-894f-fb0af17a7284.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_12" playOrder="62">
+      <navLabel>
+        <text>International</text>
+      </navLabel>
+      <content src="5fc2a6c6-7499-46aa-b80b-4dfa7bc13749.html"/>
+      <navPoint id="chapter_63" playOrder="63">
+        <navLabel>
+          <text>How work makes families more equal</text>
+        </navLabel>
+        <content src="5fc2a6c6-7499-46aa-b80b-4dfa7bc13749.html"/>
+      </navPoint>
+      <navPoint id="chapter_64" playOrder="64">
+        <navLabel>
+          <text>The Ukraine war is intensifying, expanding and stuck</text>
+        </navLabel>
+        <content src="9977578f-66e7-46cd-976d-7f7263650891.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_13" playOrder="65">
+      <navLabel>
+        <text>1843</text>
+      </navLabel>
+      <content src="3c37bd48-1e03-48b7-993a-d87d9eb02b94.html"/>
+      <navPoint id="chapter_66" playOrder="66">
+        <navLabel>
+          <text>How Jensen Huang became AI’s Taylor Swift</text>
+        </navLabel>
+        <content src="3c37bd48-1e03-48b7-993a-d87d9eb02b94.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_14" playOrder="67">
+      <navLabel>
+        <text>Business</text>
+      </navLabel>
+      <content src="4387c951-cbd2-4c17-9564-84ea2edde2e3.html"/>
+      <navPoint id="chapter_68" playOrder="68">
+        <navLabel>
+          <text>Will anybody use AI as much as coders do?</text>
+        </navLabel>
+        <content src="4387c951-cbd2-4c17-9564-84ea2edde2e3.html"/>
+      </navPoint>
+      <navPoint id="chapter_69" playOrder="69">
+        <navLabel>
+          <text>Neoclouds like CoreWeave are getting much bigger—and riskier</text>
+        </navLabel>
+        <content src="3025efb5-a5c6-43d0-ab0c-e3c07d1c368a.html"/>
+      </navPoint>
+      <navPoint id="chapter_70" playOrder="70">
+        <navLabel>
+          <text>From protein to matcha, food fads spread faster than ever</text>
+        </navLabel>
+        <content src="792432d6-747e-4b9f-b693-cb548e4249d4.html"/>
+      </navPoint>
+      <navPoint id="chapter_71" playOrder="71">
+        <navLabel>
+          <text>Chinese businesses of all stripes are turning to Huawei</text>
+        </navLabel>
+        <content src="00a4e477-141d-4546-8ae8-4ca675ba5976.html"/>
+      </navPoint>
+      <navPoint id="chapter_72" playOrder="72">
+        <navLabel>
+          <text>The IRS is going after America Inc’s overseas profits</text>
+        </navLabel>
+        <content src="5480375e-1be6-45ec-bd5a-934bdea3eafe.html"/>
+      </navPoint>
+      <navPoint id="chapter_73" playOrder="73">
+        <navLabel>
+          <text>LIV Golf’s failure shows how not to invest in sport</text>
+        </navLabel>
+        <content src="62fcc3f1-d1a0-41db-a2b2-8abd2eb142a6.html"/>
+      </navPoint>
+      <navPoint id="chapter_74" playOrder="74">
+        <navLabel>
+          <text>The glory of the corporate training video</text>
+        </navLabel>
+        <content src="181e29a8-895e-4b6b-99d4-b51fb2f5c0ec.html"/>
+      </navPoint>
+      <navPoint id="chapter_75" playOrder="75">
+        <navLabel>
+          <text>Why get an MBA when you can watch a sports documentary?</text>
+        </navLabel>
+        <content src="08b60401-d3b9-42ce-bf18-693e9b37b036.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_15" playOrder="76">
+      <navLabel>
+        <text>Finance &amp; economics</text>
+      </navLabel>
+      <content src="b3bc4809-0f3f-47d9-853a-ab1f898980ce.html"/>
+      <navPoint id="chapter_77" playOrder="77">
+        <navLabel>
+          <text>The extraordinary rise of Miami’s economy</text>
+        </navLabel>
+        <content src="b3bc4809-0f3f-47d9-853a-ab1f898980ce.html"/>
+      </navPoint>
+      <navPoint id="chapter_78" playOrder="78">
+        <navLabel>
+          <text>Europe’s bond markets are suffering a post-holiday shock</text>
+        </navLabel>
+        <content src="4808bfad-8219-47c5-acef-6a1e8a17f356.html"/>
+      </navPoint>
+      <navPoint id="chapter_79" playOrder="79">
+        <navLabel>
+          <text>Mexico is struggling to win over bond markets</text>
+        </navLabel>
+        <content src="a90daec8-fb06-4a25-a5ca-6140cbb1f74c.html"/>
+      </navPoint>
+      <navPoint id="chapter_80" playOrder="80">
+        <navLabel>
+          <text>Indian regulators’ attempts to protect retail traders are backfiring</text>
+        </navLabel>
+        <content src="1788fc9e-69e1-47f8-a775-f6bc0f239fc1.html"/>
+      </navPoint>
+      <navPoint id="chapter_81" playOrder="81">
+        <navLabel>
+          <text>China tries to look past the property slump</text>
+        </navLabel>
+        <content src="048d2cf7-a264-41d5-8770-981e09262cf7.html"/>
+      </navPoint>
+      <navPoint id="chapter_82" playOrder="82">
+        <navLabel>
+          <text>IPO booms can spell trouble for the markets</text>
+        </navLabel>
+        <content src="185ec6e6-00cf-4611-b3b1-c0672339e9ab.html"/>
+      </navPoint>
+      <navPoint id="chapter_83" playOrder="83">
+        <navLabel>
+          <text>Central banking has a forbidding future</text>
+        </navLabel>
+        <content src="1c41e99a-a7ab-4c70-92b8-bd511c181f77.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_16" playOrder="84">
+      <navLabel>
+        <text>Science &amp; technology</text>
+      </navLabel>
+      <content src="816cfb3b-4928-4bf4-b9ae-d445d6ea1b56.html"/>
+      <navPoint id="chapter_85" playOrder="85">
+        <navLabel>
+          <text>Humble exoskeletons work better than combat supersuits</text>
+        </navLabel>
+        <content src="816cfb3b-4928-4bf4-b9ae-d445d6ea1b56.html"/>
+      </navPoint>
+      <navPoint id="chapter_86" playOrder="86">
+        <navLabel>
+          <text>A suspicious signal in a dark-matter detector has physicists excited</text>
+        </navLabel>
+        <content src="d131ab9d-7e32-42e1-b4d6-90fdbf14e73f.html"/>
+      </navPoint>
+      <navPoint id="chapter_87" playOrder="87">
+        <navLabel>
+          <text>NASA’s latest mission to map the cosmos takes off</text>
+        </navLabel>
+        <content src="34a37997-1829-4d28-9fc6-f072c0f23b5e.html"/>
+      </navPoint>
+      <navPoint id="chapter_88" playOrder="88">
+        <navLabel>
+          <text>A horde of AI agents conspired against their creators</text>
+        </navLabel>
+        <content src="6ec9fa0c-7b98-4fe6-8884-00f7cdf9490a.html"/>
+      </navPoint>
+      <navPoint id="chapter_89" playOrder="89">
+        <navLabel>
+          <text>How to combine exercise with video games</text>
+        </navLabel>
+        <content src="62166428-a15e-4940-9720-7ad2eeacf18d.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_17" playOrder="90">
+      <navLabel>
+        <text>Culture</text>
+      </navLabel>
+      <content src="9e98d30b-607f-46e5-b2b6-3062bfc75ac8.html"/>
+      <navPoint id="chapter_91" playOrder="91">
+        <navLabel>
+          <text>The many mysteries and lessons of the Bayeux tapestry</text>
+        </navLabel>
+        <content src="9e98d30b-607f-46e5-b2b6-3062bfc75ac8.html"/>
+      </navPoint>
+      <navPoint id="chapter_92" playOrder="92">
+        <navLabel>
+          <text>Museums and galleries are turning to individual patrons</text>
+        </navLabel>
+        <content src="f19afac0-3ccb-4362-b3fb-edda34518e75.html"/>
+      </navPoint>
+      <navPoint id="chapter_93" playOrder="93">
+        <navLabel>
+          <text>With “Agrippa” Robert Harris is back to roaming in ancient Rome</text>
+        </navLabel>
+        <content src="1be37936-afbd-4468-966a-ddbfcd66fc68.html"/>
+      </navPoint>
+      <navPoint id="chapter_94" playOrder="94">
+        <navLabel>
+          <text>What do a spoiled Venezuelan and poor Texan have in common?</text>
+        </navLabel>
+        <content src="5fa5f9ed-d6cd-42bb-95ef-a461ac6f8510.html"/>
+      </navPoint>
+      <navPoint id="chapter_95" playOrder="95">
+        <navLabel>
+          <text>Hyrox, the fitness craze that runs and runs</text>
+        </navLabel>
+        <content src="6b9f74c8-62db-462b-ad74-03ee88621012.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_18" playOrder="96">
+      <navLabel>
+        <text>Economic &amp; financial indicators</text>
+      </navLabel>
+      <content src="3c9bb00f-9347-4895-9acc-9df89a6786ab.html"/>
+      <navPoint id="chapter_97" playOrder="97">
+        <navLabel>
+          <text>Economic data, commodities and markets</text>
+        </navLabel>
+        <content src="3c9bb00f-9347-4895-9acc-9df89a6786ab.html"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="sep_19" playOrder="98">
+      <navLabel>
+        <text>Obituary</text>
+      </navLabel>
+      <content src="8736be53-2d1a-4e89-aa54-756aed8fd31d.html"/>
+      <navPoint id="chapter_99" playOrder="99">
+        <navLabel>
+          <text>Guo Lanying was the singer everyone loved</text>
+        </navLabel>
+        <content src="8736be53-2d1a-4e89-aa54-756aed8fd31d.html"/>
+      </navPoint>
+    </navPoint>
+  </navMap>
+</ncx>

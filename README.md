@@ -1,20 +1,19 @@
 # magazine2db
 
-面向 `awesome-english-ebooks` 中 Economist 和 Wired 的本地入库工具。它将一期杂志拆成文章后直接写入共享 SQLite，不生成 `articles/*.md`，并提供 FTS5 全文检索、文章读取和中文摘要。
+面向 `awesome-english-ebooks` 中 Economist 和 Wired 的本地入库工具。它将一期杂志拆成文章后直接写入共享 SQLite，不生成 `articles/*.md`，并提供 期刊浏览、文章读取和原文节选。
 
 杂志内容来源：[hehonghui/awesome-english-ebooks](https://github.com/hehonghui/awesome-english-ebooks.git)。
 
 > [!IMPORTANT]
-> **本项目当前仅在 macOS 上开发和验证。** 本文记录的构建、同步、Codex 摘要、定时任务和 E2E 流程均以 macOS 为准；Linux 与 Windows 尚未测试，不保证可以正常运行。项目脚本还直接依赖 macOS 的 `/usr/bin/trash`。
+> **本项目当前仅在 macOS 上开发和验证。** 本文记录的构建、同步、定时任务和 E2E 流程均以 macOS 为准；Linux 与 Windows 尚未测试，不保证可以正常运行。项目脚本还直接依赖 macOS 的 `/usr/bin/trash`。
 
 ## 环境要求
 
 - Go 1.25 或更高版本：构建和运行程序。
 - Git：执行杂志同步脚本。
-- Calibre 的 `ebook-convert`：仅当一期杂志没有 TXT、需要从 EPUB 转换时使用。
-- 已登录的 Codex CLI：仅在生成中文摘要时需要；模型固定为 `gpt-5.6-luna`，reasoning effort 固定为 `max`。
+- EPUB 原生读取使用 Go ZIP/XML 标准库和 `golang.org/x/net/html`，无需 Calibre。
 
-SQLite 和 FTS5 由 Go 依赖内置，无需单独安装 SQLite。
+SQLite 由 Go 依赖内置，无需单独安装 SQLite。
 
 ## 构建
 
@@ -43,7 +42,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o magazine2db .
 1. 当前目录中存在 `cfg.json` 时，使用当前目录（开发模式）。
 2. 否则查找 `magazine2db` 可执行文件同目录的 `cfg.json`（发布模式）。
 
-`cfg.json` 里的数据库相对路径以工作目录为基准，因此可以从任意目录启动发布后的程序。Codex 使用当前系统用户已有的 CLI 登录状态，不读取项目 `.env`。
+`cfg.json` 里的数据库相对路径以工作目录为基准，因此可以从任意目录启动发布后的程序。程序不依赖 LLM、API 密钥或登录状态。
 
 发布目录结构如下：
 
@@ -54,21 +53,14 @@ runtime/
 └── magazines.db
 ```
 
-`cfg.json` 保存数据库、保留期数和 Codex 摘要执行参数：
+`cfg.json` 保存数据库路径和保留期数：
 
 ```json
 {
   "database": "magazines.db",
-  "retention": 4,
-  "summary": {
-    "concurrency": 4,
-    "timeout_seconds": 1800,
-    "codex_bin": "codex"
-  }
+  "retention": 4
 }
 ```
-
-`codex_bin` 可以是 PATH 中的命令，也可以是绝对路径。使用 npm/NVM 安装 Codex 时，定时任务的 PATH 还必须包含同目录下的 `node`。
 
 `--db` 仍可临时覆盖 `cfg.json` 中的数据库路径。
 
@@ -82,7 +74,7 @@ runtime/
 
 杂志保存在 `data/awesome-english-ebooks/`，整个 `data/` 目录已被 Git 忽略。可以通过 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量覆盖默认值。
 
-每天自动执行“同步 → 入库新期刊 → 生成待处理摘要”时，先构建二进制并创建日志目录：
+每天自动执行“同步 → 入库新期刊”时，先构建二进制并创建日志目录：
 
 ```bash
 go build -o magazine2db .
@@ -98,11 +90,11 @@ mkdir -p logs
 然后执行 `crontab -e`，加入：
 
 ```cron
-PATH=/path/to/codex-and-node/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Applications/calibre.app/Contents/MacOS
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
 20 6 * * * cd /path/to/magazine2db && ./scripts/daily.sh >> logs/daily.log 2>&1
 ```
 
-将 `/path/to/codex-and-node/bin` 替换为 `dirname "$(command -v codex)"` 的实际输出。每天 6:20 运行。脚本带有互斥锁，重复触发会直接退出；已有期刊由 `ingest` 自动跳过，只为尚无摘要的文章调用模型。可以通过 `MAGAZINE2DB_BIN` 覆盖二进制路径，并继续使用同步脚本支持的 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量。锁目录退出时通过 macOS `/usr/bin/trash` 移入废纸篓，不永久删除。
+每天 6:20 运行。脚本带有互斥锁，重复触发会直接退出；已有期刊由 `ingest` 自动跳过。可以通过 `MAGAZINE2DB_BIN` 覆盖二进制路径，并继续使用同步脚本支持的 `KEEP`、`TARGET_DIR`、`BRANCH` 和 `REPO_URL` 环境变量。锁目录退出时通过 macOS `/usr/bin/trash` 移入废纸篓，不永久删除。
 
 ## 入库
 
@@ -113,7 +105,7 @@ go run . ingest ./data/awesome-english-ebooks/01_economist/te_2026.06.13
 go run . ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
 ```
 
-工具只接受目录，优先读取其中的 TXT；只有 EPUB 时调用本机 `ebook-convert` 转换，产物 `.txt` 持久保存在 EPUB 同目录，下次直接复用，不再重复转换。重复的 `publisher + issue_date` 会跳过。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章和 FTS 索引。
+工具只接受包含 EPUB 的目录，原生读取 EPUB：通过 OPF、nav / NCX 和 spine 定位并排序文章，原样保存 XHTML，再使用 `JohannesKaufmann/html-to-markdown/v2` 转换为 Markdown。不再支持 TXT 导入；先按刊物和期号查询数据库，已存在且未指定 `--force` 时直接跳过，无需 EPUB；需要解析时，目录没有 EPUB 会报错，此时数据库可能已创建。EPUB 解析失败会直接报错，不使用 TXT 回退。已有数据库中的历史纯文本文章仍可正常读取。重复的 `publisher + issue_date` 默认跳过。显式使用 `ingest --force <目录>` 可从 EPUB 刷新已有期刊：按来源定位、来源 URL、稳定 ID 或规范化标题明确匹配，保留已有文章 ID 和元数据。旧文章缺失或匹配有歧义时整期回滚，不自动删除旧文章。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章。
 
 查看已经入库的期刊及其文章数量：
 
@@ -124,22 +116,28 @@ go run . issue --json
 
 默认按期刊日期倒序输出 plain text；`--json` 返回 `count` 和 `issues`。每期包含 `id`、`publisher`、`issue_date`、`article_count` 和 `imported_at`。
 
-## 搜索与读取
+## 文章读取
 
 ```bash
-go run . search "interest rates"
-go run . search --publisher wired "人工智能"
-go run . search --json "interest rates"
 go run . read economist:2026-06-13:the-world-cup-paradox
 go run . read 42
 go run . read --json 42
 ```
 
-搜索覆盖标题、副标题、英文正文和中文摘要。查询不足 3 个字符时自动使用 `LIKE`，其余使用 FTS5 trigram。
+`read --json` 默认返回元数据及 Markdown `body`，供下游直接使用。JSON 字段统一使用 snake_case。
 
-`search` 和 `read` 支持 `--json`，用于 agent 或脚本提取结构化信息。`search` 返回 `count` 和 `results`，`read` 返回完整文章对象；JSON 字段统一使用 snake_case。
+`body_xhtml` 保存 ZIP 中的原始 UTF-8 XHTML，不重新序列化。`source_href` 记录 EPUB 内部文件路径。需要核对原始数据时：
 
-分页获取文章标题和摘要时使用 `list`：
+```bash
+go run . read --xhtml 42
+go run . read --json --xhtml 42
+```
+
+前者输出原始 XHTML，后者在 JSON 中包含 `body_xhtml`。历史 TXT 导入或尚未刷新的记录没有 XHTML，显式请求时会报错。
+
+`body` 在 HTML DOM 副本上排除 head、script、style、template、图片及显式隐藏内容，再转换为 Markdown，保留标题、列表、引用、代码和表格结构；不推断出版社专有版式，也不保证排除所有导航、广告或 CSS 隐藏内容。作者和发布时间不从 OPF 的整刊元数据推断；缺失时留空。历史 `body` 不会自动转换，使用 `ingest --force` 从 EPUB 刷新后才变成 Markdown。每篇文章对应独立 XHTML 文件；带锚点的目录链接和重复文章文件会报错，不支持共用 XHTML 的分段文章。
+
+分页获取文章标题和原文节选时使用 `list`：
 
 ```bash
 go run . list --page 1 --page-size 20
@@ -147,26 +145,15 @@ go run . list --issue 7 --page 1 --page-size 20
 go run . list --page 1 --page-size 20 --json
 ```
 
-默认输出便于阅读的 plain text；使用 `--issue ID` 可只查看某一期。传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`summary`；`summary` 最多 200 个字符，尚未生成摘要时使用正文内容。
+默认输出便于阅读的 plain text；使用 `--issue ID` 可只查看某一期。传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`excerpt`；`excerpt` 为正文开头最多 200 个 Unicode 字符，完整正文通过 `read` 获取。
 
-## 中文摘要
+## 从摘要版本升级
 
-摘要是独立步骤，默认并发 10，只处理尚无摘要的文章：
+重新构建二进制，并从旧 `cfg.json` 中移除 `summary` 配置块。`summarize` 和 `smoke` 命令已移除；每日脚本只同步和入库。
 
-```bash
-go run . summarize
-go run . summarize --limit 20 --concurrency 10
-```
+`list --json` 的 `summary` 字段改为 `excerpt`，`read --json` 不再返回 `summary_zh` 和 `summary_error`。下游应读取 `body` 进行分析。`search` 命令已移除；下游通过 `issue → list → read` 获取文章。
 
-每篇文章启动一次非交互式 `codex exec`，固定使用 `gpt-5.6-luna` + `max`。运行参数包含 `--ephemeral`、`--sandbox read-only`、`--output-schema` 和 `-o`；文章正文只写入隔离 workspace，不放进命令行。提示词要求摘要尽量不超过 300 个 Unicode 字符；应用会再次验证最终 JSON：摘要必须是单段中文，且不能包含 Markdown 或“摘要：”前缀。
-
-每次调用的输入、命令、stdout/stderr、最终响应和运行记录保存在 `.agent-runs/summary/`，不会自动永久删除。成功摘要及 `codex/gpt-5.6-luna@max` 会写回 SQLite，并由触发器同步更新 FTS 索引。Codex 启动失败、非零退出、超时或结果违规都会保留 artifacts 并写入 `summary_error`；不会切换模型，也不会内部重试。
-
-执行一次合成文章摘要，验证 Codex CLI、登录状态、模型、网络和结构化输出（不写库）：
-
-```bash
-go run . smoke
-```
+旧 SQLite 在打开时自动迁移：移除四个摘要相关列，并清理旧 FTS 表及其触发器。迁移在同一个事务内完成，保留文章 ID、正文和期刊信息；数据库版本记录为 `user_version = 3`，同时新增 `body_xhtml` 和 `source_href`；已有纯文本不能反向恢复 XHTML，需要从原 EPUB 显式刷新。升级前请备份旧库，迁移后不要再使用旧二进制。历史 `.agent-runs/` 文件不会自动清理。
 
 ## 测试
 
@@ -176,10 +163,10 @@ go run . smoke
 go test ./...
 ```
 
-完整 E2E 会构建并运行真实二进制，覆盖 `help`、`ingest`、重复入库、`search`、两种 ID 的 `read` 和 `summarize`。测试要求当前用户已登录 Codex CLI，只处理一篇合成文章并发起一次真实摘要请求：
+完整 E2E 会构建并运行真实二进制，覆盖 `help`、`ingest`、重复入库、两种 ID 的 `read` 和分页 `list`。测试使用合成 EPUB，并验证 TXT-only 导入报错、已有期刊无 EPUB 时跳过、`--force` 强制解析，覆盖刷新、原始 XHTML 往返，不调用模型或访问网络：
 
 ```bash
-go test -tags=e2e -run TestCLIEndToEndWithRealCodexSummary -v .
+go test -tags=e2e -run TestCLIEndToEnd -v .
 ```
 
 ## 许可证与内容归属

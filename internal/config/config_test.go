@@ -9,12 +9,7 @@ import (
 
 const testConfig = `{
   "database": "test.db",
-  "retention": 4,
-  "summary": {
-    "concurrency": 4,
-    "timeout_seconds": 1800,
-    "codex_bin": "codex"
-  }
+  "retention": 4
 }`
 
 func TestLoadFromPrefersCurrentDirectory(t *testing.T) {
@@ -31,9 +26,7 @@ func TestLoadFromPrefersCurrentDirectory(t *testing.T) {
 	if cfg.Database != filepath.Join(cwd, "test.db") {
 		t.Fatalf("database = %q", cfg.Database)
 	}
-	if cfg.Summary.CodexBin != "codex" || cfg.Summary.TimeoutSeconds != 1800 {
-		t.Fatalf("summary config = %+v", cfg.Summary)
-	}
+
 }
 
 func TestLoadFromFallsBackToExecutableDirectory(t *testing.T) {

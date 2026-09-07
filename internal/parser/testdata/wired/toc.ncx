@@ -1,0 +1,363 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1" xml:lang="en">
+  <head>
+    <meta name="dtb:uid" content="0b0f5583-f8ee-4f7d-96f5-76b4afe33ccf"/>
+    <meta name="dtb:depth" content="2"/>
+    <meta name="dtb:generator" content="calibre (5.23.0)"/>
+    <meta name="dtb:totalPageCount" content="0"/>
+    <meta name="dtb:maxPageNumber" content="0"/>
+  </head>
+  <docTitle>
+    <text>Wired Magazine, Monthly Edition [Wed, 02 Sep 2026]</text>
+  </docTitle>
+  <navMap>
+    <navPoint id="num_1" playOrder="1" class="chapter">
+      <navLabel>
+        <text>Elite Young Runners Are Becoming Freakishly Fast. Welcome to ‘Trackflation’</text>
+      </navLabel>
+      <content src="feed_0/article_0/index_u1.html"/>
+    </navPoint>
+    <navPoint id="num_2" playOrder="2" class="chapter">
+      <navLabel>
+        <text>Streamer IShowSpeed Is Gen Z’s ESPN</text>
+      </navLabel>
+      <content src="feed_0/article_1/index_u53.html"/>
+    </navPoint>
+    <navPoint id="num_3" playOrder="3" class="chapter">
+      <navLabel>
+        <text>I’m a Normie. Can Normies Really Vibe Code?</text>
+      </navLabel>
+      <content src="feed_0/article_2/index_u46.html"/>
+    </navPoint>
+    <navPoint id="num_4" playOrder="4" class="chapter">
+      <navLabel>
+        <text>Arm’s CEO Insists the Market Needs His New CPU. It Could Piss Everyone Off</text>
+      </navLabel>
+      <content src="feed_0/article_3/index_u36.html"/>
+    </navPoint>
+    <navPoint id="num_5" playOrder="5" class="chapter">
+      <navLabel>
+        <text>Our Favorite Brain-Boosting Toys for Kids of All Ages</text>
+      </navLabel>
+      <content src="feed_0/article_4/index_u35.html"/>
+    </navPoint>
+    <navPoint id="num_6" playOrder="6" class="chapter">
+      <navLabel>
+        <text>Python Is So Slow. Can Julia Solve the Two-Language Problem?</text>
+      </navLabel>
+      <content src="feed_0/article_5/index_u27.html"/>
+    </navPoint>
+    <navPoint id="num_7" playOrder="7" class="chapter">
+      <navLabel>
+        <text>Monica Lewinsky Has Always Hated Notifications</text>
+      </navLabel>
+      <content src="feed_0/article_6/index_u19.html"/>
+    </navPoint>
+    <navPoint id="num_8" playOrder="8" class="chapter">
+      <navLabel>
+        <text>Quiz: Will AI Destroy Your Career?</text>
+      </navLabel>
+      <content src="feed_0/article_7/index_u11.html"/>
+    </navPoint>
+    <navPoint id="num_9" playOrder="9" class="chapter">
+      <navLabel>
+        <text>14 New Tools for Taking on the Great Outdoors Properly</text>
+      </navLabel>
+      <content src="feed_0/article_8/index_u28.html"/>
+    </navPoint>
+    <navPoint id="num_10" playOrder="10" class="chapter">
+      <navLabel>
+        <text>15 Design-Forward DIY Tools Worth Upgrading to This Year</text>
+      </navLabel>
+      <content src="feed_0/article_9/index_u39.html"/>
+    </navPoint>
+    <navPoint id="num_11" playOrder="11" class="chapter">
+      <navLabel>
+        <text>Taylor Lorenz’s Screen Time Is Almost 17 Hours a Day</text>
+      </navLabel>
+      <content src="feed_0/article_10/index_u29.html"/>
+    </navPoint>
+    <navPoint id="num_12" playOrder="12" class="chapter">
+      <navLabel>
+        <text>How Is Kalshi Not Gambling?</text>
+      </navLabel>
+      <content src="feed_0/article_11/index_u17.html"/>
+    </navPoint>
+    <navPoint id="num_13" playOrder="13" class="chapter">
+      <navLabel>
+        <text>For $4,550, Would You Buy a Single Premium Watch or a Swarm of Affordable Ones?</text>
+      </navLabel>
+      <content src="feed_0/article_12/index_u8.html"/>
+    </navPoint>
+    <navPoint id="num_14" playOrder="14" class="chapter">
+      <navLabel>
+        <text>Why Are Some Women Training for Pregnancy Like It’s a Marathon?</text>
+      </navLabel>
+      <content src="feed_0/article_13/index_u5.html"/>
+    </navPoint>
+    <navPoint id="num_15" playOrder="15" class="chapter">
+      <navLabel>
+        <text>He Leaked the Secrets of a Southeast Asian Scam Compound. Then He Had to Get Out Alive</text>
+      </navLabel>
+      <content src="feed_0/article_14/index_u6.html"/>
+    </navPoint>
+    <navPoint id="num_16" playOrder="16" class="chapter">
+      <navLabel>
+        <text>Why Minnesota Can’t Do More to Stop ICE</text>
+      </navLabel>
+      <content src="feed_0/article_15/index_u58.html"/>
+    </navPoint>
+    <navPoint id="num_17" playOrder="17" class="chapter">
+      <navLabel>
+        <text>You’ve Never Heard of China’s Greatest Sci-Fi Novel</text>
+      </navLabel>
+      <content src="feed_0/article_16/index_u49.html"/>
+    </navPoint>
+    <navPoint id="num_18" playOrder="18" class="chapter">
+      <navLabel>
+        <text>Thousands of Companies Are Driving China’s AI Boom. A Government Registry Tracks Them All</text>
+      </navLabel>
+      <content src="feed_0/article_17/index_u44.html"/>
+    </navPoint>
+    <navPoint id="num_19" playOrder="19" class="chapter">
+      <navLabel>
+        <text>Your First Humanoid Robot Coworker Will Probably Be Chinese</text>
+      </navLabel>
+      <content src="feed_0/article_18/index_u32.html"/>
+    </navPoint>
+    <navPoint id="num_20" playOrder="20" class="chapter">
+      <navLabel>
+        <text>China’s AI Boyfriend Business Is Taking On a Life of Its Own</text>
+      </navLabel>
+      <content src="feed_0/article_19/index_u18.html"/>
+    </navPoint>
+    <navPoint id="num_21" playOrder="21" class="chapter">
+      <navLabel>
+        <text>China’s Renewable Energy Revolution Is a Huge Mess That Might Save the World</text>
+      </navLabel>
+      <content src="feed_0/article_20/index_u2.html"/>
+    </navPoint>
+    <navPoint id="num_22" playOrder="22" class="chapter">
+      <navLabel>
+        <text>She Was Given Up by Her Chinese Parents—and Spent 14 Years Trying to Find a Way Back</text>
+      </navLabel>
+      <content src="feed_0/article_21/index_u54.html"/>
+    </navPoint>
+    <navPoint id="num_23" playOrder="23" class="chapter">
+      <navLabel>
+        <text>He Went to Prison for Gene-Editing Babies. Now He’s Planning to Do It Again</text>
+      </navLabel>
+      <content src="feed_0/article_22/index_u47.html"/>
+    </navPoint>
+    <navPoint id="num_24" playOrder="24" class="chapter">
+      <navLabel>
+        <text>How China’s ‘Crystal Capital’ Cornered the Market on a Western Obsession</text>
+      </navLabel>
+      <content src="feed_0/article_23/index_u40.html"/>
+    </navPoint>
+    <navPoint id="num_25" playOrder="25" class="chapter">
+      <navLabel>
+        <text>Chinese EV Batteries Are Eating the World</text>
+      </navLabel>
+      <content src="feed_0/article_24/index_u37.html"/>
+    </navPoint>
+    <navPoint id="num_26" playOrder="26" class="chapter">
+      <navLabel>
+        <text>Trump Declared a Space Race With China. The US Is Losing</text>
+      </navLabel>
+      <content src="feed_0/article_25/index_u22.html"/>
+    </navPoint>
+    <navPoint id="num_27" playOrder="27" class="chapter">
+      <navLabel>
+        <text>True Patriots Are Cashing In on the Apocalypse</text>
+      </navLabel>
+      <content src="feed_0/article_26/index_u56.html"/>
+    </navPoint>
+    <navPoint id="num_28" playOrder="28" class="chapter">
+      <navLabel>
+        <text>Scientists Thought Parkinson’s Was in Our Genes. It Might Be in the Water</text>
+      </navLabel>
+      <content src="feed_0/article_27/index_u43.html"/>
+    </navPoint>
+    <navPoint id="num_29" playOrder="29" class="chapter">
+      <navLabel>
+        <text>A New Anonymous Phone Carrier Lets You Sign Up With Nothing but a Zip Code</text>
+      </navLabel>
+      <content src="feed_0/article_28/index_u34.html"/>
+    </navPoint>
+    <navPoint id="num_30" playOrder="30" class="chapter">
+      <navLabel>
+        <text>Want This Hearing Aid? Well, Who Do You Know?</text>
+      </navLabel>
+      <content src="feed_0/article_29/index_u10.html"/>
+    </navPoint>
+    <navPoint id="num_31" playOrder="31" class="chapter">
+      <navLabel>
+        <text>Ruby Is Not a Serious Programming Language</text>
+      </navLabel>
+      <content src="feed_0/article_30/index.html"/>
+    </navPoint>
+    <navPoint id="num_32" playOrder="32" class="chapter">
+      <navLabel>
+        <text>OpenAI's Fidji Simo Plans to Make ChatGPT Way More Useful—and Have You Pay For It</text>
+      </navLabel>
+      <content src="feed_0/article_31/index_u51.html"/>
+    </navPoint>
+    <navPoint id="num_33" playOrder="33" class="chapter">
+      <navLabel>
+        <text>All of My Employees Are AI Agents, and So Are My Executives</text>
+      </navLabel>
+      <content src="feed_0/article_32/index_u25.html"/>
+    </navPoint>
+    <navPoint id="num_34" playOrder="34" class="chapter">
+      <navLabel>
+        <text>Alex Karp Goes to War</text>
+      </navLabel>
+      <content src="feed_0/article_33/index_u13.html"/>
+    </navPoint>
+    <navPoint id="num_35" playOrder="35" class="chapter">
+      <navLabel>
+        <text>How KPop Demon Hunters Star EJAE Topped the Charts</text>
+      </navLabel>
+      <content src="feed_0/article_34/index_u57.html"/>
+    </navPoint>
+    <navPoint id="num_36" playOrder="36" class="chapter">
+      <navLabel>
+        <text>Ed Zitron Gets Paid to Love AI. He Also Gets Paid to Hate AI</text>
+      </navLabel>
+      <content src="feed_0/article_35/index_u21.html"/>
+    </navPoint>
+    <navPoint id="num_37" playOrder="37" class="chapter">
+      <navLabel>
+        <text>The Cure</text>
+      </navLabel>
+      <content src="feed_0/article_36/index_u52.html"/>
+    </navPoint>
+    <navPoint id="num_38" playOrder="38" class="chapter">
+      <navLabel>
+        <text>The Future of AI Isn’t Just Slop</text>
+      </navLabel>
+      <content src="feed_0/article_37/index_u15.html"/>
+    </navPoint>
+    <navPoint id="num_39" playOrder="39" class="chapter">
+      <navLabel>
+        <text>Parents Fell in Love With Alpha School’s Promise. Then They Wanted Out</text>
+      </navLabel>
+      <content src="feed_0/article_38/index_u30.html"/>
+    </navPoint>
+    <navPoint id="num_40" playOrder="40" class="chapter">
+      <navLabel>
+        <text>Why AI Breaks Bad</text>
+      </navLabel>
+      <content src="feed_0/article_39/index_u42.html"/>
+    </navPoint>
+    <navPoint id="num_41" playOrder="41" class="chapter">
+      <navLabel>
+        <text>Programming in Assembly Is Brutal, Beautiful, and Maybe Even a Path to Better AI</text>
+      </navLabel>
+      <content src="feed_0/article_40/index_u48.html"/>
+    </navPoint>
+    <navPoint id="num_42" playOrder="42" class="chapter">
+      <navLabel>
+        <text>Gear for Good: 20 Eco-Friendly Items That Score a Win for the Planet—and for You</text>
+      </navLabel>
+      <content src="feed_0/article_41/index_u4.html"/>
+    </navPoint>
+    <navPoint id="num_43" playOrder="43" class="chapter">
+      <navLabel>
+        <text>The Real Stakes, and Real Story, of Peter Thiel’s Antichrist Obsession</text>
+      </navLabel>
+      <content src="feed_0/article_42/index_u41.html"/>
+    </navPoint>
+    <navPoint id="num_44" playOrder="44" class="chapter">
+      <navLabel>
+        <text>The Story of DOGE, as Told by Federal Workers</text>
+      </navLabel>
+      <content src="feed_0/article_43/index_u20.html"/>
+    </navPoint>
+    <navPoint id="num_45" playOrder="45" class="chapter">
+      <navLabel>
+        <text>The 22 Very Online Upstarts Changing the Face of Politics</text>
+      </navLabel>
+      <content src="feed_0/article_44/index_u33.html"/>
+    </navPoint>
+    <navPoint id="num_46" playOrder="46" class="chapter">
+      <navLabel>
+        <text>She Fought the Far Right Online for Years. Now She Wants to Do It in Congress</text>
+      </navLabel>
+      <content src="feed_0/article_45/index_u24.html"/>
+    </navPoint>
+    <navPoint id="num_47" playOrder="47" class="chapter">
+      <navLabel>
+        <text>I Thought I Knew Silicon Valley. I Was Wrong</text>
+      </navLabel>
+      <content src="feed_0/article_46/index_u3.html"/>
+    </navPoint>
+    <navPoint id="num_48" playOrder="48" class="chapter">
+      <navLabel>
+        <text>Elon Musk Is Out to Rule Space. Can Anyone Stop Him?</text>
+      </navLabel>
+      <content src="feed_0/article_47/index_u55.html"/>
+    </navPoint>
+    <navPoint id="num_49" playOrder="49" class="chapter">
+      <navLabel>
+        <text>One Vigilante, 22 Cell Tower Fires, and a World of Conspiracies</text>
+      </navLabel>
+      <content src="feed_0/article_48/index_u50.html"/>
+    </navPoint>
+    <navPoint id="num_50" playOrder="50" class="chapter">
+      <navLabel>
+        <text>The Superyacht, the Billionaire, and a Wildly Improbable Disaster at Sea</text>
+      </navLabel>
+      <content src="feed_0/article_49/index_u38.html"/>
+    </navPoint>
+    <navPoint id="num_51" playOrder="51" class="chapter">
+      <navLabel>
+        <text>The Baby Died. Whose Fault Is It?</text>
+      </navLabel>
+      <content src="feed_0/article_50/index_u31.html"/>
+    </navPoint>
+    <navPoint id="num_52" playOrder="52" class="chapter">
+      <navLabel>
+        <text>What It’s Like Watching Dozens of Bodies Decompose (for Science)</text>
+      </navLabel>
+      <content src="feed_0/article_51/index_u26.html"/>
+    </navPoint>
+    <navPoint id="num_53" playOrder="53" class="chapter">
+      <navLabel>
+        <text>Why Did a $10 Billion Startup Let Me Vibe-Code for Them—and Why Did I Love It?</text>
+      </navLabel>
+      <content src="feed_0/article_52/index_u9.html"/>
+    </navPoint>
+    <navPoint id="num_54" playOrder="54" class="chapter">
+      <navLabel>
+        <text>AI Isn’t Coming for Hollywood. It's Already Arrived</text>
+      </navLabel>
+      <content src="feed_0/article_53/index_u59.html"/>
+    </navPoint>
+    <navPoint id="num_55" playOrder="55" class="chapter">
+      <navLabel>
+        <text>Lisa Su Runs AMD—and Is Out for Nvidia’s Blood</text>
+      </navLabel>
+      <content src="feed_0/article_54/index_u45.html"/>
+    </navPoint>
+    <navPoint id="num_56" playOrder="56" class="chapter">
+      <navLabel>
+        <text>Psychedelic Therapy Crashed and Burned. MAHA Might Bring It Back</text>
+      </navLabel>
+      <content src="feed_0/article_55/index_u23.html"/>
+    </navPoint>
+    <navPoint id="num_57" playOrder="57" class="chapter">
+      <navLabel>
+        <text>Life Without Screens: This Camp Is a Teen’s Worst Nightmare</text>
+      </navLabel>
+      <content src="feed_0/article_56/index_u16.html"/>
+    </navPoint>
+    <navPoint id="num_58" playOrder="58" class="chapter">
+      <navLabel>
+        <text>A Head-to-Toe Breakdown of Social Media’s Billion-Dollar Remedies</text>
+      </navLabel>
+      <content src="feed_0/article_57/index_u12.html"/>
+    </navPoint>
+  </navMap>
+</ncx>

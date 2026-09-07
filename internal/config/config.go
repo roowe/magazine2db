@@ -9,17 +9,10 @@ import (
 	"path/filepath"
 )
 
-type Summary struct {
-	CodexBin       string `json:"codex_bin"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
-	Concurrency    int    `json:"concurrency"`
-}
-
 type Config struct {
-	WorkDir   string  `json:"-"`
-	Database  string  `json:"database"`
-	Retention int     `json:"retention"`
-	Summary   Summary `json:"summary"`
+	WorkDir   string `json:"-"`
+	Database  string `json:"database"`
+	Retention int    `json:"retention"`
 }
 
 func Load() (Config, error) {
@@ -85,15 +78,6 @@ func (cfg Config) validate() error {
 	}
 	if cfg.Retention < 1 {
 		return errors.New("retention must be positive")
-	}
-	if cfg.Summary.Concurrency < 1 {
-		return errors.New("summary.concurrency must be positive")
-	}
-	if cfg.Summary.TimeoutSeconds < 1 {
-		return errors.New("summary.timeout_seconds must be positive")
-	}
-	if cfg.Summary.CodexBin == "" {
-		return errors.New("summary.codex_bin is required")
 	}
 	return nil
 }

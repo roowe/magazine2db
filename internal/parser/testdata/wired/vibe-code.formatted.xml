@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US" xml:lang="en-US">
+  
+  
+  <head>
+    
+    
+    <title>I’m a Normie. Can Normies Really Vibe Code? | WIRED</title>
+    
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    
+  
+    <link rel="stylesheet" type="text/css" href="../../stylesheet.css"/>
+    
+
+    <link rel="stylesheet" type="text/css" href="../../page_styles.css"/>
+    
+
+  </head>
+  
+  
+  <body class="calibre">
+    <div class="calibre_navbar">
+      | 
+      <a href="../article_3/index_u36.html">Next</a>
+       | 
+      <a href="../index_u7.html#article_2">Section menu</a>
+       | 
+      <a href="../../index_u14.html#feed_0">Main menu</a>
+       | 
+      <a href="../article_1/index_u53.html">Previous</a>
+       | 
+      <hr class="calibre8"/>
+      
+
+    </div>
+    <div class="calibre6" data-testid="SplitScreenContentHeaderWrapper">
+      <div class="calibre6" data-journey-hook="grid-wrapper">
+        <div class="calibre6">
+          <div class="calibre6">
+            <div class="calibre6">
+              <div class="calibre6" data-testid="ContentHeaderRubric">
+                <div class="calibre6">
+                  <div class="calibre6" data-testid="BylinesWrapper">
+                    <span data-testid="BylineWrapper">
+                      <span>
+                        <span data-testid="BylineName">
+                          <a href="https://www.wired.com/author/chris-colin/">Chris Colin</a>
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                </div>
+                <div class="calibre6">
+                  <a href="https://www.wired.com/category/big-story">
+                    <span>The Big Story</span>
+                  </a>
+                </div>
+                <time data-testid="ContentHeaderPublishDate">May 18, 2026 6:00 AM</time>
+              </div>
+              <h1 class="basetext-fewdhd" data-testid="ContentHeaderHed">I’m a Normie. Can Normies Really Vibe Code?</h1>
+              <div class="calibre6">Apparently anyone can vibe code anything these days. So Claude and I tried to make a database for tracking the petty grievances of the masses.</div>
+            </div>
+          </div>
+        </div>
+        <div class="calibre6">
+          <div class="calibre6">
+            <div class="calibre6" data-testid="ContentHeaderLeadAsset">
+              <span>
+                <picture>
+                  <source media="(max-width: 767px)" sizes="100vw" srcset="https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_120,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 120w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_240,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 240w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_320,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 320w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_640,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 640w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_768,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 768w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_960,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 960w"/>
+                  <source media="(min-width: 768px)" sizes="100vw" srcset="https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_120,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 120w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_240,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 240w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_320,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 320w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_640,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 640w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_768,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 768w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_960,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 960w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_1280,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 1280w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_1600,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 1600w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_1920,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 1920w, https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_2240,c_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg 2240w"/>
+                  <img alt="" class="calibre3" data-src="https://media.wired.com/photos/69f9d501e8aff66a9d0732d2/master/w_2560%2Cc_limit/WIRED-YanBastard-Normie-Vibe-Coders-RGB-02.jpg" loading="eager" src="images/img1_u41.jpg"/>
+                </picture>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="calibre6" data-journey-hook="grid-wrapper">
+        <div class="calibre6">
+          <div class="calibre6" data-testid="caption-wrapper">
+            <span>Illustration: Yann Bastard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="calibre6" data-journey-hook="client-content" data-testid="BodyWrapper">
+      <div class="calibre6" data-testid="cne-audio-embed-figure">
+        <div data-testid="cne-audio-embed-container" class="calibre6">
+          <div data-testid="cne-audio-embed-target" id="6a0b12aa045b2c5d28f00911" class="calibre6"/>
+        </div>
+      </div>
+      <div class="calibre6">
+        <p class="calibre9">
+          <span>The dog that</span>
+           ushered me into the technological future was “low and thick.” That’s all my mother registered before it T-boned her in a city park earlier this year: dense, heavy, and traveling fast enough to fracture her right tibia. But enough about 
+          <em class="calibre10">her</em>
+          . Let’s discuss what this set in motion in my life: Having successfully learned nothing about coding for two and a half decades, I would soon be attempting my very first software development project.
+        </p>
+        <p class="calibre9">
+          If you’ve ever had a low and thick dog break your mom’s shin bone, you know the stream of lesser indignities that follows. Case in point: the hours my father spent navigating phone trees, trying to manage my mom’s medical care. Are frustrating telephone calls significant in the grand scheme of things? No. But that stupid dog had chosen a technologically interesting moment to do its thing. For the first time in history, a problem no longer needed to be serious to bring 
+          <a href="https://www.wired.com/tag/artificial-intelligence/">serious tools</a>
+           to bear.
+        </p>
+        <div class="calibre6"/>
+        <div class="calibre6"/>
+        <p class="calibre9">
+          For as long as Silicon Valley has been selling a frictionless tomorrow, we ordinary people have been its passive shoppers—scrolling the App Store, hoping someone has gone to the trouble of building whatever we need. Enter AI and its democratizing sidekick: 
+          <a href="https://www.wired.com/story/why-did-a-10-billion-dollar-startup-let-me-vibe-code-for-them-and-why-did-i-love-it/">vibe coding</a>
+          . If the promise is real, suddenly we can build our own apps, as niche and trifling as we please, with zero 
+          <a href="https://www.wired.com/tag/programming/">programming</a>
+           skills. We merely gesture toward whatever irks us and a constellation of large language models, code generators, and development environments will click their heels.
+        </p>
+      </div>
+    </div>
+    <div class="calibre6" data-journey-hook="client-content" data-testid="BodyWrapper">
+      <div class="calibre6">
+        <p class="calibre9">
+          Niche and trifling? That’s me! Where others vibe code résumé reviewers and inventory trackers and 
+          <a href="https://www.wired.com/story/malevolent-ai-agent-openclaw-clawdbot/">automated assistants</a>
+           to boost their work productivity, I had a different target in mind. Over the past couple years I’ve grown particularly fixated, personally and professionally, on what the policy world calls sludge: the rising tide of tiny administrative obligations that increasingly seems to define modern existence—and corrode our ability to get anything done. The hassle of dealing with insurance, or connecting that insurance to your doctor, or staying on top of airline miles, or navigating your kid’s school portal. The steps required to dispute a charge, or unsubscribe from a streaming service you forgot you had. Each of these feels like its own discrete assault on our time. But they’re not discrete. They’re separate mushrooms sprouting from the same mycorrhizal network.
+        </p>
+        <div class="calibre6"/>
+        <p class="calibre9">In a way this is a calibration issue. While bigger problems might at least theoretically attract attention—legislation, journalism, a Senate hearing—the smaller ones, too petty to litigate, simply become a fact of life. The arc of history may bend toward justice, but when it comes to fighting a one-dollar bank fee, it bends toward hold music.</p>
+        <p class="calibre9">Which is where the fantasy of vibe coding captured my attention. Those hassles aren’t just accidental byproducts of complexity; they’re often features. A confusing portal, a dropped call, a process just opaque enough to discourage follow-through. At scale, they function less like bugs than like policy. The app I envisioned would expose this phenomenon, make the cumulative weight of these obligations a little harder to ignore. The image I’d like you to summon is a field of mushrooms trembling.</p>
+        <div aria-hidden="true" class="calibre6" role="presentation">
+          <div class="calibre6"/>
+          <div class="calibre6"/>
+        </div>
+        <div class="calibre6"/>
+      </div>
+    </div>
+    <div class="calibre6" data-journey-hook="client-content" data-testid="BodyWrapper">
+      <div class="calibre6">
+        <p class="calibre9">
+          <span>What my mom</span>
+           lacks in healthy legs, she makes up for in a Claude Pro subscription. Having needled her repeatedly over the past couple years about AI’s environmental, political, and economic implications, I brushed all that aside on a recent Sunday and drove to her house. After a little tibia talk, I opened her computer and began emitting vibes.
+        </p>
+        <div class="calibre6" data-testid="GenericCallout">
+          <div class="calibre6" data-testid="SidebarEmbed">
+            <div class="calibre6">
+              <a href="https://www.wired.com/tag/ai-panic/">
+                <div class="calibre6">
+                  <div class="calibre6">
+                    <span>
+                      <picture>
+                        <img alt="WIRED cover with an office chair with a tombstone back that readsAI or DIE TRYING. Text readsYour boss has a new..." class="calibre3" loading="lazy" sizes="100vw" src="images/img2_u28.jpg"/>
+                      </picture>
+                    </span>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <p class="calibre9">
+              <strong class="calibre11">
+                Take this 
+                <a href="https://www.wired.com/story/ai-or-die-trying/">mandatory AI workplace training</a>
+                 right now—or else.
+              </strong>
+            </p>
+          </div>
+        </div>
+        <p class="calibre9">
+          <em class="calibre10">I’d like to create a communally shared app that gathers and shares information related to how much time and energy we devote to fighting burdensome administrative tasks, bureaucratic sludge, Kafka-esque unsubscribe mazes, byzantine insurance portals, wrongful charges, denied claims, confusing membership plans, and the like.</em>
+        </p>
+        <p class="calibre9">With as much clarity and detail as I could muster, I proceeded to describe a dashboard that would record the scale and scope of our collective sludge. Users would log frustrating incidents from their lives, entering how much time they’d spent, how annoying it was, and what they’d rather have been doing. Every submission would be dopaminally rewarded with an inspiring resistance quote and a photo of a kitten, puppy, or baby chimp. I’d train Claude to generate some “wider context”—a paragraph discussing how the frustrating incident fits into systemic sludge patterns—and a complaint letter to the relevant regulatory bodies.</p>
+        <p class="calibre9">Claude noodled. Not for the first time, I feared my vibes would simply manifest an error page. I recalled, dimly, some of the advice I’d seen in Reddit forums: “I’d learn how computers and code works first.” “I’d look into going through harvards CS50.” “Instead of learning AWS or servers, use something like Kuberns.” I began to worry that vibe coding was a kind of stone soup: Sure, anyone can do it, you just first need a Harvard-level understanding of several dozen programming languages and cloud platforms.</p>
+        <p class="calibre9">That worry lasted about three Kuberns of a second. Claude stopped thinking and proceeded to explore what, by nature, it had to concede was an amazing concept: “This is a fantastic idea—genuinely useful, with a clear mission and a great sense of humor about a real problem. Let me give you an honest lay of the land before we dive in.”</p>
+        <p class="calibre9">A couple clarifying questions later, I was staring at a real interface. The “Log Incident” and “Dashboard” tabs didn’t work yet, we hadn’t arranged for the entries to be saved anywhere, and I still needed to teach Claude the wider context part. But the beginnings of an online app had materialized.</p>
+        <div class="calibre6" data-testid="GenericCallout">
+          <div class="calibre6"/>
+        </div>
+      </div>
+    </div>
+    <div class="calibre6" data-journey-hook="client-content" data-testid="BodyWrapper">
+      <div class="calibre6">
+        <p class="calibre9">I spent the next hour ironing out kinks. Some fixes Claude could make, some it had me make. I understood nothing and was merely following orders (while also being the one who gave out the orders). But steadily we made headway, and help—confident, reassuring, clear—was always a whimper away:</p>
+        <p class="calibre9">
+          ME: 
+          <em class="calibre10">I got through step 3 above, but I’m getting confused at step 4. Here’s a screen shot of what I’m seeing after I clicked Settings.</em>
+        </p>
+        <p class="calibre9">
+          CLAUDE: 
+          <em class="calibre10">Good news - you’re in the right place, and very close. But I can see Supabase has updated their interface since I wrote those instructions. What you’re looking at is their new API keys screen, which is slightly different from what I described …</em>
+        </p>
+        <p class="calibre9">The experience was akin to building an elaborate Lego creation: You don’t know what each individual Ribbed Hose or Flared Mudguard does, but if you follow the directions to a tee, the thing does get built.</p>
+        <p class="calibre9">Linus Torvalds, Steve Wozniak, Bill Gates: I assume these guys could only borrow their moms’ computers for so long. After a couple hours, I told Claude we’d pick up again soon.</p>
+        <p class="calibre9">
+          I drove home giddy—a giddiness I recognized from a brief arc-welding phase in my twenties. 
+          <em class="calibre10">I can’t believe I, a regular person, can make this!</em>
+           For all the websites and apps I whip through on a given day, they’ve always been mysterious to me—pyramids erected by an unfathomable priesthood. Suddenly I was a pyramid builder.
+        </p>
+        <div class="calibre6" data-testid="GenericCallout">
+          <div class="calibre6"/>
+        </div>
+        <p class="calibre9">I wasn’t alone. Someone in Florida had recently built something called Stratus, a guitar pedal that lets players describe an effect in plain English—“give me a wobbly tremolo with a warm Mellotron feel”—and generates it. Elsewhere a guy named Justin had built a Plywood Cutting Visualizer—enter the dimensions of a sheet, get back the cuts. Someone else had made MIXCARD, which turns your Spotify playlists into physical postcards. The barrier between idea and creation had, for a certain kind of person with a certain kind of afternoon, effectively dissolved.</p>
+      </div>
+    </div>
+    <div class="calibre6" data-journey-hook="client-content" data-testid="BodyWrapper">
+      <div class="calibre6">
+        <p class="calibre9">But this was also the catch. What happens when anyone with a passing itch builds their own app? Those environmental, political, and economic concerns came roaring back—accompanied by a new worry.</p>
+        <p class="calibre9">Before the pandemic, I began having friends over for a ritual I called Admin Night. The idea is to power through your personal sludge in communion with others. One thing I noticed is that many of today’s administrative tasks are the residue of yesterday’s tech solutions—systems that promised to streamline our productivity or organize our memories, then broke or expired or began charging $14.99 a month. Would AI be different, or was I just assisting in the creation of more sludge?</p>
+        <p class="calibre9">
+          <span>A couple days</span>
+           later, I visited Mom again. My app was coming along, but the final stretch seemed to be taking as long as the first 90 percent. I needed accounts at GitHub (to store my code), Supabase (to store users’ sludge records), and Netlify (to serve the app), each straightforward, each an opportunity for error. I left my API key exposed in the public GitHub repository, for instance. Claude caught it and moved the key somewhere safe. Then there was security to ponder. My Instagram algorithm having grown wise to my new hobby, I’d been served a suggested prompt for app builders, one explaining how to compel Claude to run a security audit. Sure enough, we found that user-submitted text was being inserted into the page’s HTML unsanitized, meaning anyone could submit malicious code as their company name and it would execute in every visitor’s browser. Easy fix.
+        </p>
+        <p class="calibre9">The tasks were menial but doable: ferrying credentials between services, clicking Deploy, watching something fail, pasting the error back to Claude, repeating. Assembly, not engineering—think Ikea daybed. I made three more visits to my mom’s house, and by the time her tibia was strong enough to try out crutches, my app was ready for a trial run.</p>
+        <p class="calibre9">I invited my dad over to the computer, interviewed him about that phone tree and typed his answer into the app—cathartic already for him, I noticed.</p>
+        <div class="calibre6" data-testid="GenericCallout">
+          <div class="calibre6"/>
+        </div>
+      </div>
+    </div>
+    <div class="calibre6" data-journey-hook="client-content" data-testid="BodyWrapper">
+      <div class="calibre6">
+        <p class="calibre9">
+          <em class="calibre10">Whenever I call to make a doctor’s appointment, I have to sit through options that aren’t likely choices for patients calling to make an appointment—the very first being information for sending a fax. Also the claim that the menu options have changed recently seems unlikely. The whole system feels less efficient than it could be, and sitting through this recording again and again starts to add up and feel crazy-making over time.</em>
+        </p>
+        <p class="calibre9">How much time had he spent navigating this stuff? Three hours. How annoying was it? Three out of 10. What would he rather have been doing? Gardening.</p>
+        <p class="calibre9">My dad’s submission was rewarded with an Ursula K. Le Guin quote—“We live in capitalism. Its power seems inescapable. So did the divine right of kings.”—accompanied by a tiny dachshund napping beside a stream.</p>
+        <p class="calibre9">From there my auto-context generator went to work:</p>
+        <p class="calibre9">
+          <em class="calibre10">Automated phone systems typically front-load options based on call volume data or administrative convenience rather than user intent, which is why fax transmission—likely a legacy option serving a small percentage of callers—sits ahead of the appointment-booking function that probably generates most inbound traffic.</em>
+        </p>
+        <p class="calibre9">What’s more, it continued, the company could fix that dubious “menu options have changed recently” bit with some simple tweaks “that would cost little beyond someone’s time to implement but require treating patient friction as an actual problem worth solving.”</p>
+        <p class="calibre9">My father, while also just generally dazzled that I can operate a computer, was particularly impressed by this conjuring of perspective. But there was still an automated content moderation process for Claude and me to cook up. Now, before users’ submissions display in the public dashboard, they go through some fairly rigorous filters. (Good luck getting through, CrotchGoblin69.) Two days later I sent the URL to my Admin Night community; we exist because the sludge problem is communal, and any real answer has to be communal too. Soon they were submitting complaints about Audible’s credit policy, getting double-billed by Hulu, the log-in gymnastics required to buy a daughter’s prom ticket. One member, Danielle, likened the whole thing to a “grievance dragnet.” Another, Amy, told me it was “like a friend who comes over to listen to you cry about your latest breakup and then, while you are in the shower she’s strongly recommended, creates a new dating profile crafted to avoid all the things she has just heard you complain about.” Seeing the other entries in the app, she added, “was a reminder that it’s not you, it’s the system.”</p>
+      </div>
+    </div>
+    <div class="calibre6" data-journey-hook="client-content" data-testid="BodyWrapper">
+      <div class="calibre6">
+        <p class="calibre9">
+          The idea that the internet might redistribute power in a meaningful way has been giving cover to Big Tech and its enablers since forever, and I have no illusions that a blast of amateur coding will claw back our time and agency from the purveyors of sludge. Nevertheless, my blast of amateur coding is 
+          <a data-event-click="{&quot;element&quot;:&quot;ExternalLink&quot;,&quot;outgoingURL&quot;:&quot;https://adminnight.netlify.app/&quot;}" data-offer-url="https://adminnight.netlify.app/" href="https://adminnight.netlify.app/" rel="nofollow noopener" target="_blank">now live on Netlify</a>
+          . For all I know it will crash tomorrow. But it undeniably exists—a shared civic ledger where once there was only frustration. Sludge thrives on exhausting us in the dark and the assumption that our individual wasted hours don’t add up to anything. They do. I’ve got a janky database to prove it.
+        </p>
+        <p class="calibre9">Maybe I’ve internalized Claude’s inane affirmations, but I was struck by what a few hopeful vibes could summon. In less trifling hands, there’s no telling what these tools could do, are doing now. For once, maybe the menu options really might change.</p>
+        <hr class="calibre8"/>
+        <p class="calibre9">
+          <em class="calibre10">
+            <strong class="calibre11">What Say You?</strong>
+          </em>
+          <br class="calibre6"/>
+          <em class="calibre10">Let us know what you think about this article in the comments below. Alternatively, you can submit a letter to the editor at</em>
+           
+          <em class="calibre10">
+            <a href="https://www.wired.com/cdn-cgi/l/email-protection#523f333b3e12253b2037367c313d3f">
+              <span data-cfemail="325f535b5e72455b4057561c515d5f">[email protected]</span>
+            </a>
+            .
+          </em>
+        </p>
+      </div>
+    </div>
+    <div class="calibre6">
+      <div class="calibre6">
+        <div class="calibre6">
+          <div class="calibre6" data-testid="PaywallInlineBarrierWrapper">
+            <div aria-hidden="true" aria-live="polite" class="calibre6" role="presentation">
+              <div class="calibre6"/>
+              <div class="calibre6"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="calibre_navbar">
+      
+
+      <hr class="calibre8"/>
+      
+
+      <p class="calibre12">
+        This article was downloaded by 
+        <strong class="calibre11">calibre</strong>
+         from 
+        <a href="https://www.wired.com/story/normie-vibe-code/" rel="calibre-downloaded-from">https://www.wired.com/story/normie-vibe-code/</a>
+      </p>
+      
+
+      <br class="calibre6"/>
+      <br class="calibre6"/>
+       | 
+      <a href="../index_u7.html#article_2">Section menu</a>
+       | 
+      <a href="../../index_u14.html#feed_0">Main menu</a>
+       | 
+    </div>
+  </body>
+</html>

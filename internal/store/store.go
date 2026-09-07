@@ -8,20 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	_ "modernc.org/sqlite"
 
 	"magazine2db/internal/domain"
 )
 
 const schema = `
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
-PRAGMA busy_timeout = 5000;
-
 CREATE TABLE IF NOT EXISTS issues (
     id          INTEGER PRIMARY KEY,
     publisher   TEXT NOT NULL CHECK (publisher IN ('economist', 'wired')),
@@ -48,46 +42,14 @@ CREATE TABLE IF NOT EXISTS articles (
     published_at     TEXT NOT NULL DEFAULT '',
     source_url       TEXT NOT NULL,
     body             TEXT NOT NULL,
-    summary_zh       TEXT NOT NULL DEFAULT '',
-    summary_provider TEXT NOT NULL DEFAULT '',
-    summary_error    TEXT NOT NULL DEFAULT '',
-    summarized_at    TEXT,
+    body_xhtml       TEXT NOT NULL DEFAULT '',
+    source_href      TEXT NOT NULL DEFAULT '',
     UNIQUE (issue_id, slug)
 );
 
 CREATE INDEX IF NOT EXISTS idx_articles_issue ON articles(issue_id);
 CREATE INDEX IF NOT EXISTS idx_articles_publisher_date ON articles(publisher, issue_date DESC);
 
-CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts
-USING fts5(
-    title,
-    description,
-    body,
-    summary_zh,
-    content='articles',
-    content_rowid='id',
-    tokenize='trigram'
-);
-
-CREATE TRIGGER IF NOT EXISTS articles_ai
-AFTER INSERT ON articles BEGIN
-    INSERT INTO articles_fts(rowid, title, description, body, summary_zh)
-    VALUES (new.id, new.title, new.description, new.body, new.summary_zh);
-END;
-
-CREATE TRIGGER IF NOT EXISTS articles_ad
-AFTER DELETE ON articles BEGIN
-    INSERT INTO articles_fts(articles_fts, rowid, title, description, body, summary_zh)
-    VALUES ('delete', old.id, old.title, old.description, old.body, old.summary_zh);
-END;
-
-CREATE TRIGGER IF NOT EXISTS articles_au
-AFTER UPDATE ON articles BEGIN
-    INSERT INTO articles_fts(articles_fts, rowid, title, description, body, summary_zh)
-    VALUES ('delete', old.id, old.title, old.description, old.body, old.summary_zh);
-    INSERT INTO articles_fts(rowid, title, description, body, summary_zh)
-    VALUES (new.id, new.title, new.description, new.body, new.summary_zh);
-END;
 `
 
 // DB owns the shared magazine SQLite database.
@@ -95,7 +57,7 @@ type DB struct {
 	db *sql.DB
 }
 
-// Open initializes the database and verifies FTS5 trigram support.
+// Open initializes the shared SQLite database.
 func Open(path string) (*DB, error) {
 	if path == "" {
 		return nil, errors.New("database path is empty")
@@ -108,15 +70,70 @@ func Open(path string) (*DB, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(`CREATE VIRTUAL TABLE temp.fts_probe USING fts5(x, tokenize='trigram')`); err != nil {
+	if _, err := db.Exec(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;`); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("SQLite FTS5 trigram is unavailable: %w", err)
+		return nil, fmt.Errorf("configure database: %w", err)
 	}
-	if _, err := db.Exec(schema); err != nil {
+	if err := migrate(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("initialize schema: %w", err)
 	}
 	return &DB{db: db}, nil
+}
+
+// migrate upgrades the article schema and removes obsolete search indexes in one transaction.
+func migrate(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var version int
+	if err := tx.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+		return err
+	}
+	if version > 3 {
+		return fmt.Errorf("unsupported database version %d", version)
+	}
+	if version < 3 {
+		if _, err := tx.Exec(`DROP TRIGGER IF EXISTS articles_ai;
+DROP TRIGGER IF EXISTS articles_ad;
+DROP TRIGGER IF EXISTS articles_au;
+DROP TABLE IF EXISTS articles_fts;
+`); err != nil {
+			return fmt.Errorf("remove obsolete search index: %w", err)
+		}
+	}
+	var legacy bool
+	if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM pragma_table_info('articles') WHERE name = 'summary_zh')`).Scan(&legacy); err != nil {
+		return err
+	}
+	if legacy {
+		if _, err := tx.Exec(`
+ALTER TABLE articles DROP COLUMN summary_zh;
+ALTER TABLE articles DROP COLUMN summary_provider;
+ALTER TABLE articles DROP COLUMN summary_error;
+ALTER TABLE articles DROP COLUMN summarized_at;
+`); err != nil {
+			return fmt.Errorf("remove legacy summary schema: %w", err)
+		}
+	}
+	if _, err := tx.Exec(schema); err != nil {
+		return err
+	}
+	var hasXHTML bool
+	if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM pragma_table_info('articles') WHERE name = 'body_xhtml')`).Scan(&hasXHTML); err != nil {
+		return err
+	}
+	if !hasXHTML {
+		if _, err := tx.Exec(`ALTER TABLE articles ADD COLUMN body_xhtml TEXT NOT NULL DEFAULT ''; ALTER TABLE articles ADD COLUMN source_href TEXT NOT NULL DEFAULT '';`); err != nil {
+			return fmt.Errorf("add original XHTML columns: %w", err)
+		}
+	}
+	if _, err := tx.Exec("PRAGMA user_version = 3"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // Close closes the database.
@@ -126,16 +143,9 @@ func (d *DB) Close() error {
 
 // HasIssue reports whether publisher+issue_date is already present.
 func (d *DB) HasIssue(ctx context.Context, publisher, issueDate string) (bool, error) {
-	query, args, err := sq.Select("1").
-		From("issues").
-		Where(sq.Eq{"publisher": publisher, "issue_date": issueDate}).
-		Limit(1).
-		ToSql()
-	if err != nil {
-		return false, fmt.Errorf("build issue lookup: %w", err)
-	}
+	const query = `SELECT 1 FROM issues WHERE publisher = ? AND issue_date = ? LIMIT 1`
 	var found int
-	err = d.db.QueryRowContext(ctx, query, args...).Scan(&found)
+	err := d.db.QueryRowContext(ctx, query, publisher, issueDate).Scan(&found)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -144,18 +154,12 @@ func (d *DB) HasIssue(ctx context.Context, publisher, issueDate string) (bool, e
 
 // ListIssues returns imported issues, newest first.
 func (d *DB) ListIssues(ctx context.Context) ([]domain.IssueInfo, error) {
-	query, args, err := sq.Select(
-		"i.id", "i.publisher", "i.issue_date", "COUNT(a.id)", "i.imported_at",
-	).
-		From("issues i").
-		LeftJoin("articles a ON a.issue_id = i.id").
-		GroupBy("i.id", "i.publisher", "i.issue_date", "i.imported_at").
-		OrderBy("i.issue_date DESC", "i.publisher").
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("build issue list: %w", err)
-	}
-	rows, err := d.db.QueryContext(ctx, query, args...)
+	const query = `SELECT i.id, i.publisher, i.issue_date, COUNT(a.id), i.imported_at
+FROM issues i
+LEFT JOIN articles a ON a.issue_id = i.id
+GROUP BY i.id, i.publisher, i.issue_date, i.imported_at
+ORDER BY i.issue_date DESC, i.publisher`
+	rows, err := d.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("list issues: %w", err)
 	}
@@ -186,15 +190,9 @@ func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) erro
 	}
 	defer tx.Rollback()
 
-	query, args, err := sq.Insert("issues").
-		Options("OR IGNORE").
-		Columns("publisher", "issue_date", "source_path", "imported_at").
-		Values(issue.Publisher, issue.IssueDate, issue.SourcePath, time.Now().Format(time.RFC3339)).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("build issue insert: %w", err)
-	}
-	result, err := tx.ExecContext(ctx, query, args...)
+	result, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO issues
+(publisher, issue_date, source_path, imported_at) VALUES (?, ?, ?, ?)`,
+		issue.Publisher, issue.IssueDate, issue.SourcePath, time.Now().Format(time.RFC3339))
 	if err != nil {
 		return fmt.Errorf("insert issue: %w", err)
 	}
@@ -211,38 +209,21 @@ func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) erro
 	}
 
 	for _, article := range issue.Articles {
-		query, args, err = sq.Insert("articles").
-			Columns(
-				"stable_id", "issue_id", "publisher", "issue_date", "slug", "title",
-				"description", "author", "section", "published_at", "source_url", "body",
-			).
-			Values(
-				article.StableID, issueID, issue.Publisher, issue.IssueDate, article.Slug,
-				article.Title, article.Description, article.Author, article.Section,
-				article.PublishedAt, article.SourceURL, article.Body,
-			).
-			ToSql()
-		if err != nil {
-			return fmt.Errorf("build article insert %s: %w", article.StableID, err)
-		}
-		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO articles
+(stable_id, issue_id, publisher, issue_date, slug, title, description, author,
+ section, published_at, source_url, body, body_xhtml, source_href)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			article.StableID, issueID, issue.Publisher, issue.IssueDate, article.Slug,
+			article.Title, article.Description, article.Author, article.Section,
+			article.PublishedAt, article.SourceURL, article.Body, article.BodyXHTML, article.SourceHref,
+		); err != nil {
 			return fmt.Errorf("insert article %s: %w", article.StableID, err)
 		}
 	}
 
-	keptIssues := sq.Select("id").
-		From("issues").
-		Where(sq.Eq{"publisher": issue.Publisher}).
-		OrderBy("issue_date DESC", "id DESC").
-		Limit(uint64(keep))
-	query, args, err = sq.Delete("issues").
-		Where(sq.Eq{"publisher": issue.Publisher}).
-		Where(sq.Expr("id NOT IN (?)", keptIssues)).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("build retention delete: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM issues WHERE publisher = ? AND id NOT IN (
+SELECT id FROM issues WHERE publisher = ? ORDER BY issue_date DESC, id DESC LIMIT ?
+)`, issue.Publisher, issue.Publisher, keep); err != nil {
 		return fmt.Errorf("apply retention: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -251,102 +232,20 @@ func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) erro
 	return nil
 }
 
-// Search performs trigram FTS and falls back to LIKE for queries shorter than three runes.
-func (d *DB) Search(ctx context.Context, query, publisher string, limit int) ([]domain.SearchHit, error) {
-	query = strings.TrimSpace(query)
-	if query == "" {
-		return nil, errors.New("search query is empty")
-	}
-	if len([]rune(query)) < 3 {
-		return d.searchLike(ctx, query, publisher, limit)
-	}
-
-	builder := sq.Select(
-		"a.id", "a.stable_id", "a.publisher", "a.issue_date", "a.section", "a.title",
-		"substr(snippet(articles_fts, -1, '[', ']', '…', 200), 1, 200)",
-	).
-		From("articles_fts").
-		Join("articles a ON a.id = articles_fts.rowid").
-		Where("articles_fts MATCH ?", quoteFTS(query)).
-		OrderBy("articles_fts.rank").
-		Limit(uint64(limit))
-	if publisher != "" {
-		builder = builder.Where(sq.Eq{"a.publisher": publisher})
-	}
-	return d.queryHits(ctx, builder)
-}
-
-func (d *DB) searchLike(ctx context.Context, query, publisher string, limit int) ([]domain.SearchHit, error) {
-	pattern := "%" + query + "%"
-	builder := sq.Select(
-		"id", "stable_id", "publisher", "issue_date", "section", "title",
-	).
-		Column("substr(CASE WHEN summary_zh LIKE ? THEN summary_zh ELSE body END, 1, 200)", pattern).
-		From("articles").
-		Where(sq.Or{
-			sq.Like{"title": pattern},
-			sq.Like{"description": pattern},
-			sq.Like{"body": pattern},
-			sq.Like{"summary_zh": pattern},
-		}).
-		OrderBy("issue_date DESC", "id").
-		Limit(uint64(limit))
-	if publisher != "" {
-		builder = builder.Where(sq.Eq{"publisher": publisher})
-	}
-	return d.queryHits(ctx, builder)
-}
-
-func (d *DB) queryHits(ctx context.Context, builder sq.SelectBuilder) ([]domain.SearchHit, error) {
-	query, args, err := builder.ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("build article search: %w", err)
-	}
-	return scanHits(d.db.QueryContext(ctx, query, args...))
-}
-
-func scanHits(rows *sql.Rows, err error) ([]domain.SearchHit, error) {
-	if err != nil {
-		return nil, fmt.Errorf("search articles: %w", err)
-	}
-	defer rows.Close()
-	var hits []domain.SearchHit
-	for rows.Next() {
-		var hit domain.SearchHit
-		if err := rows.Scan(&hit.ID, &hit.StableID, &hit.Publisher, &hit.IssueDate, &hit.Section, &hit.Title, &hit.Preview); err != nil {
-			return nil, fmt.Errorf("scan search result: %w", err)
-		}
-		hits = append(hits, hit)
-	}
-	return hits, rows.Err()
-}
-
-func quoteFTS(query string) string {
-	return `"` + strings.ReplaceAll(query, `"`, `""`) + `"`
-}
-
 // Read loads one article by stable ID or numeric row ID.
 func (d *DB) Read(ctx context.Context, identifier string) (domain.StoredArticle, error) {
-	condition := sq.Eq{"stable_id": identifier}
+	condition := "stable_id = ?"
+	var value any = identifier
 	if id, err := strconv.ParseInt(identifier, 10, 64); err == nil {
-		condition = sq.Eq{"id": id}
+		condition, value = "id = ?", id
 	}
-	query, args, err := sq.Select(
-		"id", "stable_id", "publisher", "issue_date", "slug", "title", "description", "author",
-		"section", "published_at", "source_url", "body", "summary_zh", "summary_error",
-	).
-		From("articles").
-		Where(condition).
-		ToSql()
-	if err != nil {
-		return domain.StoredArticle{}, fmt.Errorf("build article read: %w", err)
-	}
+	query := `SELECT id, stable_id, publisher, issue_date, slug, title, description, author,
+section, published_at, source_url, body, body_xhtml, source_href FROM articles WHERE ` + condition
 	var article domain.StoredArticle
-	err = d.db.QueryRowContext(ctx, query, args...).Scan(
+	err := d.db.QueryRowContext(ctx, query, value).Scan(
 		&article.ID, &article.StableID, &article.Publisher, &article.IssueDate,
 		&article.Slug, &article.Title, &article.Description, &article.Author,
-		&article.Section, &article.PublishedAt, &article.SourceURL, &article.Body,
-		&article.SummaryZH, &article.SummaryError,
+		&article.Section, &article.PublishedAt, &article.SourceURL, &article.Body, &article.BodyXHTML, &article.SourceHref,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.StoredArticle{}, fmt.Errorf("article %q not found", identifier)
@@ -357,126 +256,36 @@ func (d *DB) Read(ctx context.Context, identifier string) (domain.StoredArticle,
 	return article, nil
 }
 
-// ListArticleSummaries returns one page of titles and summaries, newest issues first.
-// Articles without a summary use the first 200 characters of their body.
-func (d *DB) ListArticleSummaries(ctx context.Context, page, pageSize int, issueID int64) ([]domain.ArticleSummary, int, error) {
-	countBuilder := sq.Select("COUNT(*)").From("articles")
-	listBuilder := sq.Select(
-		"id",
-		"title",
-		"substr(COALESCE(NULLIF(summary_zh, ''), body), 1, 200)",
-	).
-		From("articles").
-		OrderBy("issue_date DESC", "id").
-		Limit(uint64(pageSize)).
-		Offset(uint64((page - 1) * pageSize))
+// ListArticles returns titles and original-text excerpts, newest issues first.
+func (d *DB) ListArticles(ctx context.Context, page, pageSize int, issueID int64) ([]domain.ArticleListItem, int, error) {
+	filter := ""
+	var args []any
 	if issueID > 0 {
-		condition := sq.Eq{"issue_id": issueID}
-		countBuilder = countBuilder.Where(condition)
-		listBuilder = listBuilder.Where(condition)
-	}
-
-	countQuery, countArgs, err := countBuilder.ToSql()
-	if err != nil {
-		return nil, 0, fmt.Errorf("build article count: %w", err)
+		filter = " WHERE issue_id = ?"
+		args = append(args, issueID)
 	}
 	var total int
-	if err := d.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+	if err := d.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM articles"+filter, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count articles: %w", err)
 	}
-
-	query, args, err := listBuilder.ToSql()
-	if err != nil {
-		return nil, 0, fmt.Errorf("build article summary list: %w", err)
-	}
+	query := "SELECT id, title, substr(body, 1, 200) FROM articles" + filter + " ORDER BY issue_date DESC, id LIMIT ? OFFSET ?"
+	args = append(args, pageSize, (page-1)*pageSize)
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, 0, fmt.Errorf("list article summaries: %w", err)
+		return nil, 0, fmt.Errorf("list articles: %w", err)
 	}
 	defer rows.Close()
 
-	items := make([]domain.ArticleSummary, 0, pageSize)
+	items := make([]domain.ArticleListItem, 0, pageSize)
 	for rows.Next() {
-		var item domain.ArticleSummary
-		if err := rows.Scan(&item.ID, &item.Title, &item.Summary); err != nil {
-			return nil, 0, fmt.Errorf("scan article summary: %w", err)
+		var item domain.ArticleListItem
+		if err := rows.Scan(&item.ID, &item.Title, &item.Excerpt); err != nil {
+			return nil, 0, fmt.Errorf("scan article list: %w", err)
 		}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("iterate article summaries: %w", err)
+		return nil, 0, fmt.Errorf("iterate articles: %w", err)
 	}
 	return items, total, nil
-}
-
-// PendingSummaries returns articles whose Chinese summary is empty.
-func (d *DB) PendingSummaries(ctx context.Context, limit int) ([]domain.StoredArticle, error) {
-	builder := sq.Select(
-		"id", "stable_id", "publisher", "issue_date", "slug", "title", "description", "author",
-		"section", "published_at", "source_url", "body", "summary_zh", "summary_error",
-	).
-		From("articles").
-		Where(sq.Eq{"summary_zh": ""}).
-		OrderBy("issue_date DESC", "id")
-	if limit > 0 {
-		builder = builder.Limit(uint64(limit))
-	}
-	query, args, err := builder.ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("build pending summaries query: %w", err)
-	}
-	rows, err := d.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("list pending summaries: %w", err)
-	}
-	defer rows.Close()
-	var articles []domain.StoredArticle
-	for rows.Next() {
-		var article domain.StoredArticle
-		if err := rows.Scan(
-			&article.ID, &article.StableID, &article.Publisher, &article.IssueDate,
-			&article.Slug, &article.Title, &article.Description, &article.Author,
-			&article.Section, &article.PublishedAt, &article.SourceURL, &article.Body,
-			&article.SummaryZH, &article.SummaryError,
-		); err != nil {
-			return nil, fmt.Errorf("scan pending summary: %w", err)
-		}
-		articles = append(articles, article)
-	}
-	return articles, rows.Err()
-}
-
-// SaveSummary updates one summary; the FTS update trigger keeps search in sync.
-func (d *DB) SaveSummary(ctx context.Context, id int64, summary, provider string) error {
-	query, args, err := sq.Update("articles").
-		Set("summary_zh", summary).
-		Set("summary_provider", provider).
-		Set("summary_error", "").
-		Set("summarized_at", time.Now().Format(time.RFC3339)).
-		Where(sq.Eq{"id": id}).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("build summary update: %w", err)
-	}
-	_, err = d.db.ExecContext(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("save summary for article %d: %w", id, err)
-	}
-	return nil
-}
-
-// SaveSummaryError records a failed attempt without removing the article from the retry queue.
-func (d *DB) SaveSummaryError(ctx context.Context, id int64, message string) error {
-	query, args, err := sq.Update("articles").
-		Set("summary_error", message).
-		Where(sq.Eq{"id": id}).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("build summary error update: %w", err)
-	}
-	_, err = d.db.ExecContext(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("save summary error for article %d: %w", id, err)
-	}
-	return nil
 }

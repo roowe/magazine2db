@@ -42,10 +42,6 @@ for issue_dir in "${issue_dirs[@]}"; do
   fi
 done
 
-if ! "$BINARY" summarize; then
-  failed=1
-fi
-
 if [ "$failed" -ne 0 ]; then
   echo "[$(date '+%F %T')] daily job completed with errors" >&2
   exit 1
