@@ -132,11 +132,15 @@ func TestCLIEndToEnd(t *testing.T) {
 		t.Fatalf("unexpected list item: %+v", listResult.Items[0])
 	}
 
-	// Refresh the EPUB and retain the ID consumed downstream.
+	// Force replaces the issue articles; look up article IDs again after refresh.
 	const xhtml = `<html><head><title>xhtmlunindexed</title></head><body><h1>A practical quantum network</h1><p>Fresh evidence about a quantum network.</p></body></html>`
 	writeE2EEPUB(t, issuePath, xhtml)
 	runE2ECommand(t, ctx, runtimeDir, binary, "ingest", "--force", issuePath)
-	updated := runE2ECommand(t, ctx, runtimeDir, binary, "read", "--json", numericID)
+	updated := runE2ECommand(t, ctx, runtimeDir, binary, "read", "--json", e2eArticleID)
+	if err := json.Unmarshal([]byte(updated), &articleResult); err != nil {
+		t.Fatal(err)
+	}
+	numericID = strconv.FormatInt(articleResult.ID, 10)
 	if strings.Contains(updated, "body_xhtml") {
 		t.Fatal("default read must not include XHTML")
 	}

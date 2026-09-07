@@ -25,9 +25,6 @@ CREATE TABLE IF NOT EXISTS issues (
     UNIQUE (publisher, issue_date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_issues_publisher_date
-ON issues(publisher, issue_date DESC);
-
 CREATE TABLE IF NOT EXISTS articles (
     id               INTEGER PRIMARY KEY,
     stable_id        TEXT NOT NULL UNIQUE,
@@ -48,7 +45,6 @@ CREATE TABLE IF NOT EXISTS articles (
 );
 
 CREATE INDEX IF NOT EXISTS idx_articles_issue ON articles(issue_id);
-CREATE INDEX IF NOT EXISTS idx_articles_publisher_date ON articles(publisher, issue_date DESC);
 
 `
 
@@ -74,15 +70,15 @@ func Open(path string) (*DB, error) {
 		db.Close()
 		return nil, fmt.Errorf("configure database: %w", err)
 	}
-	if err := migrate(db); err != nil {
+	if err := initialize(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("initialize schema: %w", err)
 	}
 	return &DB{db: db}, nil
 }
 
-// migrate upgrades the article schema and removes obsolete search indexes in one transaction.
-func migrate(db *sql.DB) error {
+// initialize 只接受当前版本或空数据库；旧库需要从 EPUB 重建，不再自动迁移。
+func initialize(db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -92,45 +88,20 @@ func migrate(db *sql.DB) error {
 	if err := tx.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version > 3 {
-		return fmt.Errorf("unsupported database version %d", version)
+	if version == 4 {
+		return tx.Commit()
 	}
-	if version < 3 {
-		if _, err := tx.Exec(`DROP TRIGGER IF EXISTS articles_ai;
-DROP TRIGGER IF EXISTS articles_ad;
-DROP TRIGGER IF EXISTS articles_au;
-DROP TABLE IF EXISTS articles_fts;
-`); err != nil {
-			return fmt.Errorf("remove obsolete search index: %w", err)
-		}
-	}
-	var legacy bool
-	if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM pragma_table_info('articles') WHERE name = 'summary_zh')`).Scan(&legacy); err != nil {
+	var populated bool
+	if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%')`).Scan(&populated); err != nil {
 		return err
 	}
-	if legacy {
-		if _, err := tx.Exec(`
-ALTER TABLE articles DROP COLUMN summary_zh;
-ALTER TABLE articles DROP COLUMN summary_provider;
-ALTER TABLE articles DROP COLUMN summary_error;
-ALTER TABLE articles DROP COLUMN summarized_at;
-`); err != nil {
-			return fmt.Errorf("remove legacy summary schema: %w", err)
-		}
+	if version != 0 || populated {
+		return fmt.Errorf("unsupported database version %d; rebuild the database from EPUB", version)
 	}
 	if _, err := tx.Exec(schema); err != nil {
 		return err
 	}
-	var hasXHTML bool
-	if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM pragma_table_info('articles') WHERE name = 'body_xhtml')`).Scan(&hasXHTML); err != nil {
-		return err
-	}
-	if !hasXHTML {
-		if _, err := tx.Exec(`ALTER TABLE articles ADD COLUMN body_xhtml TEXT NOT NULL DEFAULT ''; ALTER TABLE articles ADD COLUMN source_href TEXT NOT NULL DEFAULT '';`); err != nil {
-			return fmt.Errorf("add original XHTML columns: %w", err)
-		}
-	}
-	if _, err := tx.Exec("PRAGMA user_version = 3"); err != nil {
+	if _, err := tx.Exec("PRAGMA user_version = 4"); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -179,8 +150,9 @@ ORDER BY i.issue_date DESC, i.publisher`
 	return issues, nil
 }
 
-// InsertIssue atomically stores an issue and removes issues older than the latest keep count.
-func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) error {
+// InsertIssue 在同一事务中入库并清理超过保留期数的期刊。
+// force 时先删除整期记录（文章由外键级联删除），再插入本次解析结果；失败则整体回滚。
+func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int, force bool) error {
 	if keep < 1 {
 		return errors.New("retention count must be positive")
 	}
@@ -189,6 +161,12 @@ func (d *DB) InsertIssue(ctx context.Context, issue domain.Issue, keep int) erro
 		return fmt.Errorf("begin ingest transaction: %w", err)
 	}
 	defer tx.Rollback()
+
+	if force {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM issues WHERE publisher = ? AND issue_date = ?`, issue.Publisher, issue.IssueDate); err != nil {
+			return fmt.Errorf("delete issue for replacement: %w", err)
+		}
+	}
 
 	result, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO issues
 (publisher, issue_date, source_path, imported_at) VALUES (?, ?, ?, ?)`,

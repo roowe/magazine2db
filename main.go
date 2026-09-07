@@ -88,12 +88,12 @@ func runIssue(ctx context.Context, cfg config.Config, args []string) error {
 
 // runIngest 先从目录路径识别刊物和期号，再查数据库决定是否需要解析。
 // 已存在且未指定 --force 时直接跳过，无需查找或读取 EPUB。
-// 需要导入时才定位并解析 EPUB：新期刊新增，已有期刊刷新并保留文章 ID；缺少 EPUB 则报错。
+// 需要导入时才定位并解析 EPUB：新期刊新增，强制导入时整期删除后重新入库；缺少 EPUB 则报错。
 func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	flags := flag.NewFlagSet("ingest", flag.ContinueOnError)
 	dbPath := flags.String("db", cfg.Database, "shared SQLite database path")
 	keep := flags.Int("keep", cfg.Retention, "number of latest issues retained per publisher")
-	force := flags.Bool("force", false, "reparse EPUB even if the issue exists, retaining article IDs")
+	force := flags.Bool("force", false, "reparse EPUB and replace the entire issue")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -121,12 +121,7 @@ func runIngest(ctx context.Context, cfg config.Config, args []string) error {
 	if err != nil {
 		return err
 	}
-	if exists {
-		err = db.RefreshIssue(ctx, issue)
-	} else {
-		err = db.InsertIssue(ctx, issue, *keep)
-	}
-	if err != nil {
+	if err := db.InsertIssue(ctx, issue, *keep, *force); err != nil {
 		return err
 	}
 	fmt.Printf("ingested: %s %s, %d articles -> %s\n", issue.Publisher, issue.IssueDate, len(issue.Articles), *dbPath)

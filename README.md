@@ -105,7 +105,7 @@ go run . ingest ./data/awesome-english-ebooks/01_economist/te_2026.06.13
 go run . ingest ./data/awesome-english-ebooks/05_wired/2026.06.02
 ```
 
-工具只接受包含 EPUB 的目录，原生读取 EPUB：通过 OPF、nav / NCX 和 spine 定位并排序文章，原样保存 XHTML，再使用 `JohannesKaufmann/html-to-markdown/v2` 转换为 Markdown。不再支持 TXT 导入；先按刊物和期号查询数据库，已存在且未指定 `--force` 时直接跳过，无需 EPUB；需要解析时，目录没有 EPUB 会报错，此时数据库可能已创建。EPUB 解析失败会直接报错，不使用 TXT 回退。已有数据库中的历史纯文本文章仍可正常读取。重复的 `publisher + issue_date` 默认跳过。显式使用 `ingest --force <目录>` 可从 EPUB 刷新已有期刊：按来源定位、来源 URL、稳定 ID 或规范化标题明确匹配，保留已有文章 ID 和元数据。旧文章缺失或匹配有歧义时整期回滚，不自动删除旧文章。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章。
+工具只接受包含 EPUB 的目录，原生读取 EPUB：通过 OPF、nav / NCX 和 spine 定位并排序文章，原样保存 XHTML，再使用 `JohannesKaufmann/html-to-markdown/v2` 转换为 Markdown。不再支持 TXT 导入；先按刊物和期号查询数据库，已存在且未指定 `--force` 时直接跳过，无需 EPUB；需要解析时，目录没有 EPUB 会报错，此时数据库可能已创建。EPUB 解析失败会直接报错，不使用 TXT 回退。已有数据库中的历史纯文本文章仍可正常读取。重复的 `publisher + issue_date` 默认跳过。显式使用 `ingest --force <目录>` 可从 EPUB 刷新已有期刊：在同一事务中删除整期期刊记录及其文章，再插入本次解析结果并执行保留期数清理；失败时整体回滚。期刊及文章 ID 可能变化，元数据以本次解析为准，下游应重新获取期刊和文章列表。每个杂志只保留日期最新的 4 期，清理旧期时会级联删除文章。
 
 查看已经入库的期刊及其文章数量：
 
@@ -147,13 +147,13 @@ go run . list --page 1 --page-size 20 --json
 
 默认输出便于阅读的 plain text；使用 `--issue ID` 可只查看某一期。传入 `--json` 时返回 `page`、`page_size`、`total` 和 `items`。每项包含 `id`、`title`、`excerpt`；`excerpt` 为正文开头最多 200 个 Unicode 字符，完整正文通过 `read` 获取。
 
-## 从摘要版本升级
+## 数据库重建
 
-重新构建二进制，并从旧 `cfg.json` 中移除 `summary` 配置块。`summarize` 和 `smoke` 命令已移除；每日脚本只同步和入库。
+当前数据库版本为 `user_version = 4`，不再兼容旧库或执行历史迁移。旧库打开时会明确报错，需要将旧数据库移入废纸篓后，从原 EPUB 重新执行 `ingest`。
 
-`list --json` 的 `summary` 字段改为 `excerpt`，`read --json` 不再返回 `summary_zh` 和 `summary_error`。下游应读取 `body` 进行分析。`search` 命令已移除；下游通过 `issue → list → read` 获取文章。
+重建会重新生成期刊和文章 ID，正文输出为 Markdown；没有对应 EPUB 的历史记录无法重新导入。下游应重新获取期刊和文章列表。
 
-旧 SQLite 在打开时自动迁移：移除四个摘要相关列，并清理旧 FTS 表及其触发器。迁移在同一个事务内完成，保留文章 ID、正文和期刊信息；数据库版本记录为 `user_version = 3`，同时新增 `body_xhtml` 和 `source_href`；已有纯文本不能反向恢复 XHTML，需要从原 EPUB 显式刷新。升级前请备份旧库，迁移后不要再使用旧二进制。历史 `.agent-runs/` 文件不会自动清理。
+数据库只保存期刊和文章，不再创建全文索引，也不提供 `search`、`summarize` 或 `smoke` 命令。
 
 ## 测试
 
