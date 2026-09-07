@@ -154,7 +154,7 @@ PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
 go test ./...
 ```
 
-完整 E2E 会构建并运行真实二进制，覆盖 `help`、`ingest`、重复入库、两种 ID 的 `read` 和分页 `list`。测试使用合成 EPUB，并验证 TXT-only 导入报错、已有期刊无 EPUB 时跳过、`--force` 强制解析，覆盖刷新、原始 XHTML 往返，不调用模型或访问网络：
+完整 E2E 会构建并运行真实二进制，复用 `internal/parser/testdata/economist/issue.epub`，覆盖 `ingest → issue → list → read` 的 JSON 数据访问流程，以及 `--force` 整期重新入库、默认数据库路径和 `--db` 覆盖，不调用模型或访问网络：
 
 ```bash
 go test -tags=e2e -run TestCLIEndToEnd -v .
